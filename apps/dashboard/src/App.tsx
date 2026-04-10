@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
-import { isAuthenticated, isEmailVerified } from '@owivara/insforge'
+import { isAuthenticated, isEmailVerified, getCurrentUserEmail } from '@owivara/insforge'
 
 // Pages
 import LandingPage from './pages/LandingPage'
@@ -17,12 +17,14 @@ import DashboardLayout from './components/dashboard/DashboardLayout'
 /** Protected route wrapper with email verification check */
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<'loading' | 'unverified' | 'verified' | 'unauthed'>('loading')
+  const [verifyUrl, setVerifyUrl] = useState('/verify')
 
   useEffect(() => {
-    Promise.all([isAuthenticated(), isEmailVerified()]).then(([authed, verified]) => {
+    Promise.all([isAuthenticated(), isEmailVerified(), getCurrentUserEmail()]).then(([authed, verified, email]) => {
       if (!authed) {
         setStatus('unauthed')
       } else if (!verified) {
+        setVerifyUrl(`/verify?email=${encodeURIComponent(email ?? '')}`)
         setStatus('unverified')
       } else {
         setStatus('verified')
@@ -42,7 +44,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (status === 'unauthed') return <Navigate to="/login" replace />
-  if (status === 'unverified') return <Navigate to="/verify" replace />
+  if (status === 'unverified') return <Navigate to={verifyUrl} replace />
   return <>{children}</>
 }
 

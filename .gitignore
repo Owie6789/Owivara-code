@@ -56,6 +56,24 @@ baileys-session/
 # TypeScript
 *.tsbuildinfo
 
-# Kilo Code / OpenCode (project-local, not global)
-.kilocode/node_modules/
-.opencode/node_modules/
+# Kilo Code / OpenCode / Qwen (project-local, not global)
+.kilocode/
+.opencode/
+.qwen/
+
+# AI Agent folders
+.agents/
+
+# InsForge local config (contains API keys)
+.insforge/
+
+# Skills and local AI tool configs
+skills-lock.json
+skills-categorization.md
+
+# Docs with historical secrets
+docs/NEVER_AGAIN.md
+
+# Environment files
+.env
+.env.*

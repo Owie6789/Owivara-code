@@ -27,6 +27,7 @@ export {
   signOut,
   getUser,
   getCurrentUser,
+  getCurrentUserEmail,
   isAuthenticated,
   isEmailVerified,
   callInitProfile,

@@ -23,7 +23,14 @@ export default function SignupPage() {
     setLoading(false)
 
     if (result.error) {
-      setError(result.error.message)
+      const msg = result.error.message.toLowerCase()
+      // If user already exists, check if they're unverified and redirect to verify
+      if (msg.includes('already') || msg.includes('exists') || msg.includes('registered') || msg.includes('taken')) {
+        // User exists — redirect to verify page to resend code
+        navigate(`/verify?email=${encodeURIComponent(email)}`)
+      } else {
+        setError(result.error.message)
+      }
     } else {
       try {
         await callInitProfile(result.data!.id, { display_name: displayName })
@@ -39,7 +46,7 @@ export default function SignupPage() {
     setError('')
     setOauthLoading(true)
 
-    const { url, error } = await signInWithOAuth('google', window.location.origin + '/login')
+    const { url, error } = await signInWithOAuth('google', window.location.origin + '/dashboard')
     setOauthLoading(false)
 
     if (error) {

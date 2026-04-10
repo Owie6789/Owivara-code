@@ -206,6 +206,21 @@ export async function callInitProfile(
 export const getCurrentUser = getUser;
 
 /**
+ * Get the current user's email address.
+ *
+ * @returns The user's email or null if not authenticated
+ */
+export async function getCurrentUserEmail(): Promise<string | null> {
+  try {
+    const { data, error } = await auth.getCurrentUser();
+    if (error || !data?.user) return null;
+    return (data.user as Record<string, unknown>).email as string | null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Check if the current user's email is verified.
  *
  * @returns true if email is verified, false otherwise

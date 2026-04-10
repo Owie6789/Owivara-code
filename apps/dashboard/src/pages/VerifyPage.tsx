@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 import { useState, useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { getCurrentUser } from '@owivara/insforge'
+import { getCurrentUser, getCurrentUserEmail, signOut } from '@owivara/insforge'
 import SEOHead from '../components/SEOHead'
 
 const API_URL = import.meta.env.VITE_INSFORGE_URL
@@ -9,55 +9,79 @@ const API_URL = import.meta.env.VITE_INSFORGE_URL
 export default function VerifyPage() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const email = searchParams.get('email') ?? ''
-  const token = searchParams.get('token') ?? ''
+  const urlEmail = searchParams.get('email') ?? ''
 
+  const [email, setEmail] = useState(urlEmail)
+  const [code, setCode] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
   const [resendLoading, setResendLoading] = useState(false)
   const [countdown, setCountdown] = useState(0)
   const [resendAttempts, setResendAttempts] = useState(0)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
 
-  // If token present (from email link), auto-verify
+  // If no email in URL, try to get it from the logged-in session
   useEffect(() => {
-    if (token) {
-      verifyWithToken(token)
+    if (urlEmail) {
+      setEmail(urlEmail)
+      return
     }
-  }, [])
+    getCurrentUserEmail().then((e) => {
+      if (e) {
+        setEmail(e)
+        setIsAuthenticated(true)
+      }
+    })
+  }, [urlEmail])
 
-  // Rate limit countdown
+  // Auto-resend code when page loads (user was redirected here as unverified)
   useEffect(() => {
-    if (countdown <= 0) return
-    const timer = setTimeout(() => setCountdown(countdown - 1), 1000)
-    return () => clearTimeout(timer)
-  }, [countdown])
+    if (!email || resendAttempts > 0) return
+    // Auto-send a fresh verification code
+    handleResend()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [email])
 
   // Auto-redirect if already verified
   useEffect(() => {
-    if (!token && !email) return
+    if (!email) return
     getCurrentUser().then((user) => {
       if (user && ((user as unknown) as Record<string, unknown>).email_verified) {
-        navigate('/login', { state: { message: 'Email verified! You can now sign in.' } })
+        navigate('/dashboard')
       }
     })
-  }, [navigate, token, email])
+  }, [navigate, email])
 
-  const verifyWithToken = async (t: string) => {
-    setLoading(true)
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!email) {
+      setError('No email address found. Please sign up again.')
+      return
+    }
+    if (!code || code.length < 6) {
+      setError('Please enter the 6-digit verification code.')
+      return
+    }
+
     setError('')
+    setSuccess('')
+    setLoading(true)
+
     try {
-      const res = await fetch(`${API_URL}/auth/v1/verify-email?token=${t}`, {
-        method: 'GET',
+      const res = await fetch(`${API_URL}/api/auth/email/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, otp: code }),
       })
       const data = await res.json()
 
       if (!res.ok) {
-        const msg = data.error?.message || data.error_description || 'Verification link is invalid or expired. Please request a new one.'
+        const msg = data.error?.message || data.message || 'Invalid or expired verification code.'
         setError(msg)
       } else {
         setSuccess('Email verified successfully!')
-        setTimeout(() => navigate('/login', { state: { message: 'Email verified! You can now sign in.' } }), 1500)
+        setTimeout(() => navigate('/dashboard'), 1500)
       }
     } catch {
       setError('Network error. Please check your connection and try again.')
@@ -80,15 +104,16 @@ export default function VerifyPage() {
     setCountdown(30)
 
     try {
-      const res = await fetch(`${API_URL}/auth/v1/resend-verification-email`, {
+      // InsForge's send-verification endpoint uses email to identify the user
+      const res = await fetch(`${API_URL}/api/auth/email/send-verification`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       })
-      const data = await res.json()
+      const data2 = await res.json()
 
       if (!res.ok) {
-        const msg = data.error?.message || 'Failed to resend verification email. Please try again.'
+        const msg = data2.error?.message || data2.message || 'Failed to resend verification code. Please try again.'
         setError(msg)
         setCountdown(0)
       } else {
@@ -102,7 +127,7 @@ export default function VerifyPage() {
     }
   }
 
-  if (!email && !token) {
+  if (!email) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#0B0C10] px-4">
         <div className="text-center text-gray-400">
@@ -115,15 +140,23 @@ export default function VerifyPage() {
 
   return (
     <>
-      <SEOHead title="Verify Email — Owivara" description="Verify your email address to activate your Owivara account." path="/verify" noindex={true} />
+      <SEOHead title="Verify Email — Owivara" description="Enter the 6-digit verification code sent to your email." path="/verify" noindex={true} />
       <div className="flex min-h-screen items-center justify-center bg-[#0B0C10] px-4">
-        {/* Back to signup link */}
-        <Link to="/signup" className="absolute top-6 left-6 flex items-center text-sm text-gray-400 hover:text-white">
-          <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M19 12H5M12 19l-7-7 7-7" />
-          </svg>
-          Back
-        </Link>
+        {/* Top action link */}
+        <div className="absolute top-6 left-6 flex items-center gap-4">
+          {isAuthenticated ? (
+            <button onClick={async () => { await signOut(); navigate('/login') }} className="text-sm text-gray-400 hover:text-white">
+              Sign out
+            </button>
+          ) : (
+            <Link to="/signup" className="flex items-center text-sm text-gray-400 hover:text-white">
+              <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+              </svg>
+              Back
+            </Link>
+          )}
+        </div>
 
         <div className="w-full max-w-sm">
           {/* Mobile header */}
@@ -140,68 +173,73 @@ export default function VerifyPage() {
           <div className="rounded-2xl border border-white/10 bg-[#0D0E12] p-8">
             <div className="mb-6">
               <h2 className="text-xl font-semibold text-white">Verify your email</h2>
-              {email && (
-                <>
-                  <p className="mt-2 text-sm text-gray-500">We sent a verification link to</p>
-                  <p className="mt-1 text-sm font-medium text-green-400">{email}</p>
-                </>
-              )}
-              {!email && token && (
-                <p className="mt-2 text-sm text-gray-500">Verifying your email via link...</p>
-              )}
+              <p className="mt-2 text-sm text-gray-500">We sent a 6-digit code to</p>
+              <p className="mt-1 text-sm font-medium text-green-400">{email}</p>
             </div>
 
-            {/* Info box about verification flow */}
-            <div className="mb-6 rounded-xl border border-blue-500/20 bg-blue-500/10 px-4 py-3">
-              <p className="text-sm text-blue-300">
-                Check your inbox for a <strong>verification link</strong>. Click the link to verify your email — no code needed.
-              </p>
-            </div>
-
-            {/* Loading state when verifying via token */}
-            {token && loading && (
-              <div className="text-center py-6">
-                <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-green-500/30 border-t-green-500" />
-                <p className="text-sm text-gray-400">Verifying your email...</p>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label htmlFor="code" className="mb-1.5 block text-xs font-medium text-gray-400">
+                  Verification code
+                </label>
+                <input
+                  id="code"
+                  type="text"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
+                  required
+                  maxLength={6}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  placeholder="000000"
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-gray-600 outline-none transition-colors focus:border-green-500/50 focus:ring-1 focus:ring-green-500/30 text-center tracking-widest text-lg"
+                  autoComplete="one-time-code"
+                />
               </div>
-            )}
 
-            {/* Success state */}
-            {success && !token && (
-              <div className="rounded-xl border border-green-500/20 bg-green-500/10 px-4 py-3 text-sm text-green-400 text-center">
-                {success}
-              </div>
-            )}
+              {/* Success message */}
+              {success && (
+                <div className="rounded-xl border border-green-500/20 bg-green-500/10 px-4 py-3 text-sm text-green-400 text-center">
+                  {success}
+                </div>
+              )}
 
-            {/* Error message */}
-            {error && (
-              <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400 text-center">
-                {error}
-              </div>
-            )}
+              {/* Error message */}
+              {error && (
+                <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400 text-center">
+                  {error}
+                </div>
+              )}
 
-            {/* Resend verification email */}
-            {email && (
-              <div className="mt-6 text-center space-y-3">
-                <p className="text-sm text-gray-500">
-                  Didn't receive the link?{' '}
-                  {countdown > 0 ? (
-                    <span className="text-gray-600">Resend in {countdown}s</span>
-                  ) : (
-                    <button
-                      onClick={handleResend}
-                      disabled={resendLoading || resendAttempts >= 3}
-                      className="text-green-400 hover:text-green-300 font-medium transition-colors disabled:opacity-50"
-                    >
-                      {resendLoading ? 'Sending...' : 'Resend link'}
-                    </button>
-                  )}
-                </p>
-                {resendAttempts > 0 && (
-                  <p className="text-xs text-gray-600">{resendAttempts}/3 resend attempts used</p>
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full rounded-xl bg-green-500 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-green-400 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? 'Verifying...' : 'Verify Email'}
+              </button>
+            </form>
+
+            {/* Resend code */}
+            <div className="mt-6 text-center">
+              <p className="text-sm text-gray-500">
+                Didn't receive the code?{' '}
+                {countdown > 0 ? (
+                  <span className="text-gray-600">Resend in {countdown}s</span>
+                ) : (
+                  <button
+                    onClick={handleResend}
+                    disabled={resendLoading || resendAttempts >= 3}
+                    className="text-green-400 hover:text-green-300 font-medium transition-colors disabled:opacity-50"
+                  >
+                    {resendLoading ? 'Sending...' : 'Resend code'}
+                  </button>
                 )}
-              </div>
-            )}
+              </p>
+              {resendAttempts > 0 && (
+                <p className="mt-2 text-xs text-gray-600">{resendAttempts}/3 resend attempts used</p>
+              )}
+            </div>
           </div>
         </div>
       </div>

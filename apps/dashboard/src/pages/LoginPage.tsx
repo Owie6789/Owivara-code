@@ -26,14 +26,20 @@ export default function LoginPage() {
     const result = await signIn(email, password)
     setLoading(false)
     if (result.error) {
-      setError(result.error.message)
+      const msg = result.error.message.toLowerCase()
+      // If InsForge blocks login due to unverified email, redirect to verify
+      if (msg.includes('email') && (msg.includes('verif') || msg.includes('confirm'))) {
+        navigate(`/verify?email=${encodeURIComponent(email)}`)
+      } else {
+        setError(result.error.message)
+      }
     } else {
-      // Check if email is verified before allowing dashboard access
+      // Check if email is verified (some backends allow login but flag verification)
       const verified = await isEmailVerified()
       if (!verified) {
         navigate(`/verify?email=${encodeURIComponent(email)}`)
       } else {
-        navigate('/dashboard')
+        navigate('/dashboard', { state: { message: 'Signed in successfully!' } })
       }
     }
   }
@@ -41,7 +47,7 @@ export default function LoginPage() {
   const handleGoogleLogin = async () => {
     setError('')
     setOauthLoading(true)
-    const { url, error } = await signInWithOAuth('google')
+    const { url, error } = await signInWithOAuth('google', window.location.origin + '/dashboard')
     setOauthLoading(false)
     if (error) setError(error)
     else if (url) window.location.href = url
