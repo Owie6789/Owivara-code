@@ -118,7 +118,7 @@ export interface CommandRegistry {
   commands: RegisteredCommand[];
 
   /** Register a new plugin module */
-  register: (info: Partial<Command> & { pattern?: string; fromMe?: boolean; on?: PluginEvent; handler?: boolean; excludeFromMenu?: boolean; use?: string; desc?: string; alias?: string; }, fn: CommandHandler) => void;
+  register: (info: Partial<Command> & { pattern?: string; fromMe?: boolean; on?: PluginEvent; handler?: boolean; excludeFromMenu?: boolean; use?: string; desc?: string; alias?: string | string[]; }, fn: CommandHandler) => void;
 
   /** Find matching command for a message */
   findMatch: (text: string, prefixes: string[]) => RegisteredCommand | null;

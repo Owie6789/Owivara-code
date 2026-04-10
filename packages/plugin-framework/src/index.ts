@@ -66,3 +66,7 @@ export {
 // Plugins (auto-loaded when framework is imported)
 import './plugins/group.js';
 import './plugins/group-events.js';
+import './plugins/converters.js';
+import './plugins/media.js';
+import './plugins/take.js';
+import './plugins/fancy.js';

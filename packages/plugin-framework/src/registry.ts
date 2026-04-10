@@ -46,7 +46,9 @@ export function createRegistry(): CommandRegistry {
           use: info.use,
           fromMe: info.fromMe ?? false,
           excludeFromMenu: info.excludeFromMenu ?? false,
-          alias: info.alias ? [info.alias] : undefined,
+          alias: info.alias
+            ? (Array.isArray(info.alias) ? info.alias : [info.alias])
+            : undefined,
         },
         event: info.on,
         handler: info.handler !== false,
