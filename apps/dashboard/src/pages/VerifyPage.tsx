@@ -1,10 +1,8 @@
 /// <reference types="vite/client" />
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { getCurrentUser, getCurrentUserEmail, signOut } from '@owivara/insforge'
+import { getCurrentUser, getCurrentUserEmail, signOut, verifyEmail, resendVerificationEmail } from '@owivara/insforge'
 import SEOHead from '../components/SEOHead'
-
-const API_URL = import.meta.env.VITE_INSFORGE_URL
 
 export default function VerifyPage() {
   const [searchParams] = useSearchParams()
@@ -21,6 +19,18 @@ export default function VerifyPage() {
   const [resendAttempts, setResendAttempts] = useState(0)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
 
+  // Real-time countdown timer
+  useEffect(() => {
+    if (countdown <= 0) return
+    const timer = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) return 0
+        return prev - 1
+      })
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [countdown])
+
   // If no email in URL, try to get it from the logged-in session
   useEffect(() => {
     if (urlEmail) {
@@ -35,62 +45,31 @@ export default function VerifyPage() {
     })
   }, [urlEmail])
 
-  // Auto-resend code when page loads (user was redirected here as unverified)
-  useEffect(() => {
-    if (!email || resendAttempts > 0) return
-    // Auto-send a fresh verification code
-    handleResend()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [email])
-
-  // Auto-redirect if already verified
+  // Auto-redirect if already verified (checks periodically)
   useEffect(() => {
     if (!email) return
-    getCurrentUser().then((user) => {
-      if (user && ((user as unknown) as Record<string, unknown>).email_verified) {
-        navigate('/dashboard')
+    let mounted = true
+    const checkVerified = async () => {
+      try {
+        const user = await getCurrentUser()
+        if (mounted && user && ((user as unknown) as Record<string, unknown>).email_verified) {
+          window.location.href = '/dashboard'
+        }
+      } catch {
+        // getCurrentUser may call refreshSession internally which can 401 — ignore
       }
-    })
+    }
+    // Check immediately
+    checkVerified()
+    // Then check every 5 seconds (in case verification happened elsewhere)
+    const interval = setInterval(checkVerified, 5000)
+    return () => { mounted = false; clearInterval(interval) }
   }, [navigate, email])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!email) {
-      setError('No email address found. Please sign up again.')
-      return
-    }
-    if (!code || code.length < 6) {
-      setError('Please enter the 6-digit verification code.')
-      return
-    }
+  // NO auto-resend on mount — the code was already sent during signup.
+  // User must click "Resend" manually to avoid 429 rate limit errors.
 
-    setError('')
-    setSuccess('')
-    setLoading(true)
-
-    try {
-      const res = await fetch(`${API_URL}/api/auth/email/verify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, otp: code }),
-      })
-      const data = await res.json()
-
-      if (!res.ok) {
-        const msg = data.error?.message || data.message || 'Invalid or expired verification code.'
-        setError(msg)
-      } else {
-        setSuccess('Email verified successfully!')
-        setTimeout(() => navigate('/dashboard'), 1500)
-      }
-    } catch {
-      setError('Network error. Please check your connection and try again.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleResend = async () => {
+  const handleResend = useCallback(async () => {
     if (!email) return
     // Rate limit: max 3 attempts before 5-minute cooldown
     if (resendAttempts >= 3) {
@@ -104,17 +83,10 @@ export default function VerifyPage() {
     setCountdown(30)
 
     try {
-      // InsForge's send-verification endpoint uses email to identify the user
-      const res = await fetch(`${API_URL}/api/auth/email/send-verification`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      })
-      const data2 = await res.json()
+      const result = await resendVerificationEmail(email)
 
-      if (!res.ok) {
-        const msg = data2.error?.message || data2.message || 'Failed to resend verification code. Please try again.'
-        setError(msg)
+      if (!result.success) {
+        setError(result.error || 'Failed to resend verification code.')
         setCountdown(0)
       } else {
         setResendAttempts(prev => prev + 1)
@@ -124,6 +96,40 @@ export default function VerifyPage() {
       setCountdown(0)
     } finally {
       setResendLoading(false)
+    }
+  }, [email, resendAttempts])
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!email) {
+      setError('No email address found.')
+      return
+    }
+    if (!code || code.length < 6) {
+      setError('Please enter the 6-digit verification code.')
+      return
+    }
+
+    setError('')
+    setSuccess('')
+    setLoading(true)
+
+    try {
+      const result = await verifyEmail(email, code)
+
+      if (!result.success) {
+        setError(result.error || 'Invalid or expired verification code.')
+      } else {
+        setSuccess('Email verified successfully!')
+        // Hard redirect to force full page reload and reset session state
+        setTimeout(() => {
+          window.location.href = '/dashboard'
+        }, 1000)
+      }
+    } catch {
+      setError('Network error. Please check your connection and try again.')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -170,7 +176,7 @@ export default function VerifyPage() {
           </div>
 
           {/* Verification form card */}
-          <div className="rounded-2xl border border-white/10 bg-[#0D0E12] p-8">
+          <div className="rounded-2xl border border-white/10 bg-[#0D0E12] p-6 md:p-8">
             <div className="mb-6">
               <h2 className="text-xl font-semibold text-white">Verify your email</h2>
               <p className="mt-2 text-sm text-gray-500">We sent a 6-digit code to</p>
