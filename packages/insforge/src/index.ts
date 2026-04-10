@@ -66,3 +66,6 @@ export {
   callCreateInstance,
   callBotWebhook,
 } from './edge.js';
+
+// Utils
+export { RateLimiter } from './utils/rate-limiter.js';

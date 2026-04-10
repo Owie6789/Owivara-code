@@ -1,7 +1,10 @@
 import { useState, useEffect, FormEvent } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { signIn, signInWithOAuth, isEmailVerified } from '@owivara/insforge'
+import { signIn, signInWithOAuth, isEmailVerified, RateLimiter } from '@owivara/insforge'
 import SEOHead from '../components/SEOHead'
+
+// Client-side rate limiter: 5 login attempts per minute
+const loginLimiter = new RateLimiter()
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -23,6 +26,14 @@ export default function LoginPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setError('')
+
+    // Client-side rate limit: 5 attempts per minute
+    if (!loginLimiter.canAttempt('login', 5, 60_000)) {
+      const waitSec = Math.ceil(loginLimiter.timeUntilNextAttempt('login', 60_000) / 1000)
+      setError(`Too many login attempts. Please wait ${waitSec}s and try again.`)
+      return
+    }
+
     setLoading(true)
     const result = await signIn(email, password)
     setLoading(false)
