@@ -13,6 +13,7 @@
  * - Type-safe throughout
  */
 
+import type { WAMessageKey } from 'baileys';
 import { Module } from '../registry.js';
 import type { ParsedMessage } from '../constructors.js';
 
@@ -430,8 +431,8 @@ Module(
           delete: true,
           lastMessages: [
             {
-              key: message.raw.key,
-              messageTimestamp: message.raw.messageTimestamp || Math.floor(Date.now() / 1000),
+              key: message.raw.key as WAMessageKey,
+              messageTimestamp: (message.raw.messageTimestamp as number) || Math.floor(Date.now() / 1000),
             },
           ],
         },

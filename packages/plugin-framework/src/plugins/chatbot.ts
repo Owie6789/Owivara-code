@@ -21,7 +21,7 @@ import { Module } from '../registry.js';
 // Track conversation context per user
 const conversationHistory = new Map<string, Array<{ role: string; content: string }>>();
 
-const MAX_CONTEXT = 20;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars\nconst _MAX_CONTEXT = 20;
 const MODELS = [
   'gemini-2.5-flash-lite',
   'gemini-2.5-flash',
@@ -118,7 +118,7 @@ Module(
     }
 
     // Get conversation context
-    const history = conversationHistory.get(message.sender) || [];
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars\n    const history = conversationHistory.get(message.sender) || [];
 
     // In Phase 9: Send query to @owivara/ai package with conversation context
     // Multi-model fallback: try each model until one succeeds
@@ -152,3 +152,5 @@ Module(
     );
   }
 );
+
+
