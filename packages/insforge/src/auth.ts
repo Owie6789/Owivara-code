@@ -182,18 +182,19 @@ export async function getUser(): Promise<AuthUser | null> {
 
 /**
  * Call the init-profile edge function after signup.
+ * Sends the user object in the shape the edge function expects: { user: { id } }.
  *
  * @param userId - The user's ID
- * @param profile - Profile data to initialize
+ * @param _profile - Unused (edge function derives display_name from email)
  */
 export async function callInitProfile(
   userId: string,
-  profile: Record<string, string>
+  _profile?: Record<string, string>
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const { functions } = await import('./client.js');
     const { error } = await functions.invoke('init-profile', {
-      body: { userId, profile },
+      body: { user: { id: userId } },
     });
     if (error) return { success: false, error: error.message };
     return { success: true };
