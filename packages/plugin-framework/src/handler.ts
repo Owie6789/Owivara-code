@@ -9,7 +9,8 @@
 
 import type { WASocket, BaileysEventMap } from 'baileys';
 import type { Logger } from 'pino';
-import type { CommandRegistry, MessageContext } from './types.js';
+import type { CommandRegistry } from './types.js';
+import { buildParsedMessage, ParsedMessage } from './constructors.js';
 
 /** Handler configuration */
 export interface HandlerConfig {
@@ -37,51 +38,6 @@ export function createMessageHandler(
   const { prefixes, sudoJids, logger } = config;
 
   /**
-   * Build a MessageContext from a raw Baileys message.
-   */
-  function buildMessageContext(
-    client: WASocket,
-    raw: BaileysEventMap['messages.upsert'],
-    chat: string | undefined
-  ): MessageContext {
-    const msg = raw.messages[0];
-    const sender = msg.key.participant || msg.key.remoteJid || '';
-    const isGroup = chat?.endsWith('@g.us') ?? false;
-    const isSudo = sudoJids.has(sender);
-    const isFromMe = msg.key.fromMe ?? false;
-
-    // Extract text content (Baileys WAMessage stores content in message type fields)
-    let text: string | undefined;
-    const msgData = msg.message as Record<string, unknown> | undefined;
-    if (msgData?.conversation) {
-      text = msgData.conversation as string;
-    } else if (msgData?.extendedTextMessage) {
-      text = (msgData.extendedTextMessage as Record<string, string>)?.text;
-    } else if (msgData?.protocolMessage) {
-      const protocolMsg = msgData.protocolMessage as Record<string, unknown>;
-      if (protocolMsg.editedMessage) {
-        const edited = protocolMsg.editedMessage as Record<string, unknown>;
-        text = (edited.conversation || (edited.extendedTextMessage as Record<string, string>)?.text) as string | undefined;
-      }
-    }
-
-    return {
-      client,
-      raw,
-      sender,
-      chat,
-      isGroup,
-      isSudo,
-      isFromMe,
-      text,
-      match: undefined,
-      replyMessage: undefined,
-      logger,
-      hasHandler: false,
-    };
-  }
-
-  /**
    * Process an incoming message.
    * This is called by the bot's message listener.
    *
@@ -96,12 +52,30 @@ export function createMessageHandler(
   ): Promise<void> {
     if (!raw.messages || raw.messages.length === 0) return;
 
-    const message = buildMessageContext(client, raw, chat);
+    const chatJid = chat || raw.messages[0].key.remoteJid || '';
+    if (!chatJid) return;
+
+    const sender = raw.messages[0].key.participant || raw.messages[0].key.remoteJid || '';
+    const isGroup = chatJid.endsWith('@g.us');
+
+    // Build the ParsedMessage with all convenience methods
+    const message = buildParsedMessage({
+      client,
+      raw,
+      sender,
+      chat: chatJid,
+      isGroup,
+      isSudo: sudoJids.has(sender),
+      isFromMe: raw.messages[0].key.fromMe ?? false,
+      logger,
+      hasHandler: false,
+    });
+
     const text = message.text?.trim();
 
     if (!text) {
       // Fire event handlers for non-text messages
-      fireEvents(registry, raw, message);
+      fireEvents(registry, message);
       return;
     }
 
@@ -111,7 +85,6 @@ export function createMessageHandler(
     for (const prefix of prefixes) {
       if (text.startsWith(prefix)) {
         commandText = text.slice(prefix.length).trim();
-        message.hasHandler = true;
         break;
       }
     }
@@ -121,7 +94,7 @@ export function createMessageHandler(
 
     if (!cmd) {
       // No command matched — fire text event handlers
-      fireEvents(registry, raw, message);
+      fireEvents(registry, message);
       return;
     }
 
@@ -144,17 +117,17 @@ export function createMessageHandler(
     // Execute the handler
     try {
       logger.info(
-        { sender: message.sender, command: cmd.info.pattern, chat },
+        { sender: message.sender, command: cmd.info.pattern, chat: chatJid },
         'Executing command'
       );
-      await cmd.fn(message, match);
+      await cmd.fn(message as unknown as Parameters<typeof cmd.fn>[0], match);
     } catch (err) {
       logger.error(
         { err, sender: message.sender, command: cmd.info.pattern },
         'Command execution failed'
       );
       try {
-        await client.sendMessage(chat!, {
+        await client.sendMessage(chatJid, {
           text: `❌ Error: ${err instanceof Error ? err.message : 'Unknown error'}`,
         });
       } catch {
@@ -169,12 +142,11 @@ export function createMessageHandler(
  */
 async function fireEvents(
   registry: CommandRegistry,
-  _raw: BaileysEventMap['messages.upsert'],
-  message: MessageContext
+  message: ParsedMessage
 ): Promise<void> {
   // Determine event type from message
-  const msgData = message.raw.messages[0].message as Record<string, unknown> | undefined;
-  let eventType: 'text' | 'image' | 'video' | 'audio' | 'document' | 'sticker' | 'message' | null = null;
+  const msgData = message.raw.message as Record<string, unknown> | undefined;
+  let eventType: 'text' | 'image' | 'video' | 'audio' | 'document' | 'sticker' | 'group-update' | 'message' | null = null;
 
   if (msgData?.conversation || msgData?.extendedTextMessage) {
     eventType = 'text';
@@ -190,11 +162,16 @@ async function fireEvents(
     eventType = 'sticker';
   }
 
+  // Check for group notification events
+  if (msgData?.groupNotificationMessage) {
+    eventType = 'group-update';
+  }
+
   // Fire 'message' event handlers (always)
   const messageHandlers = registry.getEventHandlers('message');
   for (const handler of messageHandlers) {
     try {
-      await handler.fn(message, '');
+      await handler.fn(message as unknown as Parameters<typeof handler.fn>[0], '');
     } catch (err) {
       message.logger.error({ err, handler: handler.info.pattern }, 'Message event handler failed');
     }
@@ -205,7 +182,7 @@ async function fireEvents(
     const handlers = registry.getEventHandlers(eventType);
     for (const handler of handlers) {
       try {
-        await handler.fn(message, '');
+        await handler.fn(message as unknown as Parameters<typeof handler.fn>[0], '');
       } catch (err) {
         message.logger.error({ err, handler: handler.info.pattern }, `${eventType} event handler failed`);
       }

@@ -6,7 +6,7 @@
  * Ported from Raganork-MD's Module() registration pattern with TypeScript improvements.
  */
 
-import type { WASocket, BaileysEventMap } from 'baileys';
+import type { WASocket, WAMessage } from 'baileys';
 import type { Logger } from 'pino';
 
 /** Plugin command definition */
@@ -35,8 +35,8 @@ export interface MessageContext {
   /** The Baileys WhatsApp socket */
   client: WASocket;
 
-  /** The raw Baileys message object */
-  raw: BaileysEventMap['messages.upsert'];
+  /** The raw Baileys message object (single WAMessage) */
+  raw: WAMessage;
 
   /** Sender JID (e.g., "1234567890@s.whatsapp.net") */
   sender: string;
@@ -71,7 +71,8 @@ export interface MessageContext {
 
 /** Plugin handler function signature */
 export type CommandHandler = (
-  message: MessageContext,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  message: any,
   match: string
 ) => Promise<void> | void;
 

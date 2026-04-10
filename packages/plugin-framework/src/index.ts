@@ -62,3 +62,7 @@ export {
   ReplyMessage,
   buildParsedMessage,
 } from './constructors.js';
+
+// Plugins (auto-loaded when framework is imported)
+import './plugins/group.js';
+import './plugins/group-events.js';
