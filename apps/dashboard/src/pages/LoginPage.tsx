@@ -13,10 +13,11 @@ export default function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
 
-  // Handle verification success message passed from VerifyPage
+  // Handle verification success message or session expiry message from router
   useEffect(() => {
-    const message = (location.state as { message?: string })?.message
-    if (message) setSuccess(message)
+    const state = location.state as { message?: string; expired?: boolean } | null
+    if (state?.message) setSuccess(state.message)
+    if (state?.expired) setSuccess('Your session has expired. Please log in again.')
   }, [location.state])
 
   const handleSubmit = async (e: FormEvent) => {

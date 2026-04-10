@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { useState, useEffect } from 'react'
-import { isAuthenticated, isEmailVerified, getCurrentUserEmail } from '@owivara/insforge'
+import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { isAuthenticated } from '@owivara/insforge'
 
 // Pages
 import LandingPage from './pages/LandingPage'
@@ -14,23 +15,52 @@ import SettingsPage from './pages/SettingsPage'
 // Layout
 import DashboardLayout from './components/dashboard/DashboardLayout'
 
-/** Protected route wrapper with email verification check */
+/**
+ * Protected route wrapper.
+ *
+ * Auth logic:
+ * - InsForge blocks unverified email/password users at login time (returns error)
+ * - Google OAuth users are auto-verified on creation
+ * - So if isAuthenticated() is true, the user has a valid verified session
+ * - No need to check email_verified separately — it causes false negatives
+ *   because InsForge's getCurrentUser() doesn't always include email_verified
+ *
+ * Session expiry: polls every 60s to detect expired sessions. If the session
+ * expires while the user is on a protected page, they'll be redirected to login.
+ */
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const [status, setStatus] = useState<'loading' | 'unverified' | 'verified' | 'unauthed'>('loading')
-  const [verifyUrl, setVerifyUrl] = useState('/verify')
+  const navigate = useNavigate()
+  const [status, setStatus] = useState<'loading' | 'verified' | 'unauthed'>('loading')
+
+  const handleSessionExpired = useCallback(() => {
+    navigate('/login', { state: { expired: true } })
+  }, [navigate])
 
   useEffect(() => {
-    Promise.all([isAuthenticated(), isEmailVerified(), getCurrentUserEmail()]).then(([authed, verified, email]) => {
+    let mounted = true
+
+    const checkAuth = async () => {
+      const authed = await isAuthenticated()
+      if (!mounted) return
+
       if (!authed) {
-        setStatus('unauthed')
-      } else if (!verified) {
-        setVerifyUrl(`/verify?email=${encodeURIComponent(email ?? '')}`)
-        setStatus('unverified')
-      } else {
-        setStatus('verified')
+        handleSessionExpired()
+        return
       }
-    })
-  }, [])
+
+      setStatus('verified')
+    }
+
+    checkAuth()
+
+    // Poll every 60 seconds to detect expired sessions
+    const interval = setInterval(checkAuth, 60_000)
+
+    return () => {
+      mounted = false
+      clearInterval(interval)
+    }
+  }, [handleSessionExpired])
 
   if (status === 'loading') {
     return (
@@ -43,8 +73,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     )
   }
 
-  if (status === 'unauthed') return <Navigate to="/login" replace />
-  if (status === 'unverified') return <Navigate to={verifyUrl} replace />
+  if (status === 'unauthed') return <Navigate to="/login" replace state={{ expired: true }} />
   return <>{children}</>
 }
 
