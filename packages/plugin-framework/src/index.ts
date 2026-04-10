@@ -35,3 +35,30 @@ export {
   loadExternalPlugin,
   type PluginLoaderOptions,
 } from './loader.js';
+
+// Database helpers (InsForge-backed, per-user)
+export {
+  createDatabaseHelpers,
+  type DatabaseHelpers,
+  type BotVariable,
+  type WarnRecord,
+  type FilterRecord,
+  type GroupMessageConfig,
+  type ScheduledMessage,
+  type StickCmdBinding,
+  type AutoMuteConfig,
+  type AntilinkConfig,
+} from './database.js';
+
+// Per-user config system
+export {
+  UserConfig,
+  DEFAULT_CONFIG,
+} from './config.js';
+
+// Message constructors
+export {
+  ParsedMessage,
+  ReplyMessage,
+  buildParsedMessage,
+} from './constructors.js';
