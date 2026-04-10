@@ -17,6 +17,7 @@ import {
   UserConfig,
   type DatabaseHelpers,
 } from '@owivara/plugin-framework'
+import { rateLimiter, sanitizeJid } from './security.js'
 
 /** Bot plugin integration context per user session */
 export interface UserBotContext {
@@ -130,8 +131,19 @@ export async function processBotMessage(
   userId: string,
 ): Promise<void> {
   try {
+    // Sanitize chat JID for LID compatibility
+    const sanitizedJid = sanitizeJid(chatJid)
+    if (!sanitizedJid) return
+
+    // Check for soft-ban indicators in connection state
+    // (This would be called when connection.update fires with error codes)
+
+    // Check message idempotency — skip if already processed
+    const msgId = raw.messages[0]?.key?.id
+    if (msgId && rateLimiter.isDuplicate(msgId)) return
+
     const handler = await pluginManager.getOrCreateHandler(userId)
-    await handler(socket, raw, chatJid)
+    await handler(socket, raw, sanitizedJid)
   } catch (err) {
     pluginManager['logger'].error(
       { err, instanceId, userId },

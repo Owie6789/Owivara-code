@@ -40,6 +40,7 @@ import dotenv from 'dotenv'
 import { createClient } from '@insforge/sdk'
 import { ConnectionManager } from '@owivara/baileys-core'
 import { BotPluginManager, processBotMessage } from './bot-integration.js'
+import { rateLimiter } from './security.js'
 
 dotenv.config()
 
@@ -90,6 +91,9 @@ app.get('/health', (_req, res) => {
     active_instances: activeConnections.size,
     connected: Array.from(activeConnections.values()).filter((c) => c.isConnected()).length,
     plugins: pluginManager.getStats(),
+    rate_limiter: {
+      processed_messages: rateLimiter['processedIds'].size,
+    },
   })
 })
 
