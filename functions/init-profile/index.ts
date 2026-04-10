@@ -1,11 +1,24 @@
-import { createClient } from "@insforge/sdk";
+import { createClient } from "npm:@insforge/sdk";
 
 export default async (req: Request) => {
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  };
+
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }
+
   try {
     const { user } = await req.json();
-    
+
     if (!user || typeof user !== 'object' || !user.id || typeof user.id !== 'string') {
-      return new Response(JSON.stringify({ error: "Invalid user object provided" }), { status: 400 });
+      return new Response(JSON.stringify({ error: "Invalid user object provided" }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
     const insforge = createClient({
@@ -20,7 +33,10 @@ export default async (req: Request) => {
       .single();
 
     if (selectError && selectError.code !== 'PGRST116') {
-      return new Response(JSON.stringify({ error: selectError.message }), { status: 500 });
+      return new Response(JSON.stringify({ error: selectError.message }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
     if (!profile) {
@@ -33,15 +49,21 @@ export default async (req: Request) => {
         });
 
       if (insertError) {
-        return new Response(JSON.stringify({ error: insertError.message }), { status: 500 });
+        return new Response(JSON.stringify({ error: insertError.message }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
       }
     }
 
     return new Response(JSON.stringify({ success: true, message: "Profile initialized" }), {
-      headers: { "Content-Type": "application/json" }
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
   } catch (err: any) {
-    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
   }
 };
