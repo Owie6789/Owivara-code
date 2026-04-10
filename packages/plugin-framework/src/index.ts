@@ -70,3 +70,6 @@ import './plugins/converters.js';
 import './plugins/media.js';
 import './plugins/take.js';
 import './plugins/fancy.js';
+import './plugins/youtube.js';
+import './plugins/social.js';
+import './plugins/autodl.js';
