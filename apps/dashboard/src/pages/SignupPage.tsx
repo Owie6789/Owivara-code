@@ -53,11 +53,63 @@ export default function SignupPage() {
   const handleGoogleSignup = async () => {
     setError('')
     setOauthLoading(true)
-    // Redirect to our callback page so we can handle OAuth errors properly
-    const { url, error } = await signInWithOAuth('google', window.location.origin + '/auth/callback')
+    
+    // Use popup-based OAuth to prevent full-page redirects to InsForge error pages
+    const callbackUrl = window.location.origin + '/auth/callback'
+    const { url, error } = await signInWithOAuth('google', callbackUrl)
     setOauthLoading(false)
-    if (error) setError(error)
-    else if (url) window.location.href = url
+
+    if (error) {
+      setError(error)
+    } else if (url) {
+      // Open OAuth flow in popup so errors stay contained
+      const width = 500
+      const height = 700
+      const left = window.screenX + (window.outerWidth - width) / 2
+      const top = window.screenY + (window.outerHeight - height) / 2
+      const popup = window.open(url, 'oauth-popup', `width=${width},height=${height},left=${left},top=${top}`)
+      
+      if (!popup) {
+        setError('Popup was blocked. Please allow popups and try again.')
+        return
+      }
+
+      // Poll for popup close
+      const checkClosed = setInterval(() => {
+        try {
+          if (popup.closed) {
+            clearInterval(checkClosed)
+            // Check if user is now authenticated
+            const checkAuth = async () => {
+              try {
+                const { getCurrentUser } = await import('@owivara/insforge')
+                const user = await getCurrentUser()
+                if (user) {
+                  navigate('/dashboard', { state: { message: 'Signed up with Google!' } })
+                } else {
+                  // OAuth may have failed or user closed popup
+                  setError('Google sign up was not completed. Please try again.')
+                }
+              } catch {
+                setError('Google sign up was not completed. Please try again.')
+              }
+            }
+            setTimeout(checkAuth, 1000)
+          }
+        } catch {
+          // Cross-origin — popup closed before we could check
+          clearInterval(checkClosed)
+        }
+      }, 500)
+
+      // Timeout after 5 minutes
+      setTimeout(() => {
+        clearInterval(checkClosed)
+        if (!popup.closed) {
+          popup.close()
+        }
+      }, 300000)
+    }
   }
 
   return (

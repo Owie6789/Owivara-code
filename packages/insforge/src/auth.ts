@@ -416,14 +416,23 @@ export async function signInWithOAuth(
   redirectTo?: string
 ): Promise<{ url: string | null; error: string | null }> {
   try {
+    const callbackUrl = redirectTo || window.location.origin + '/auth/callback'
+    console.log('[INSFORGE] signInWithOAuth called:', { provider, redirectTo: callbackUrl })
+    
     const { data, error } = await auth.signInWithOAuth({
       provider,
-      redirectTo: redirectTo || window.location.origin + '/dashboard',
+      redirectTo: callbackUrl,
     });
 
-    if (error) return { url: null, error: error.message };
+    if (error) {
+      console.error('[INSFORGE] signInWithOAuth error:', error)
+      return { url: null, error: error.message }
+    }
+    
+    console.log('[INSFORGE] signInWithOAuth response URL:', data?.url)
     return { url: data?.url || null, error: null };
   } catch (err) {
+    console.error('[INSFORGE] signInWithOAuth exception:', err)
     return {
       url: null,
       error: err instanceof Error ? err.message : 'OAuth sign in failed',
