@@ -18,7 +18,7 @@
  * - auth.setProfile(profile) → { data, error }
  */
 
-import { auth } from './client.js';
+import { auth, baseUrl } from './client.js';
 import type { AuthUser } from '@owivara/types';
 
 /** Auth error result */
@@ -206,6 +206,24 @@ export async function callInitProfile(
 export const getCurrentUser = getUser;
 
 /**
+ * Force a session refresh to get the latest user data from InsForge.
+ * Only call this after email verification (when user has a valid session).
+ * Silently handles 401 if no session exists.
+ */
+export async function refreshSession(): Promise<void> {
+  try {
+    // Only attempt refresh if user is authenticated
+    const { data, error } = await auth.getCurrentUser()
+    if (error || !data?.user) return // No session, nothing to refresh
+    
+    await auth.refreshSession()
+  } catch {
+    // Session refresh may fail — silently ignore
+    // This happens when: user not logged in, token expired, or endpoint unavailable
+  }
+}
+
+/**
  * Get the current user's email address.
  *
  * @returns The user's email or null if not authenticated
@@ -232,6 +250,106 @@ export async function isEmailVerified(): Promise<boolean> {
     return Boolean(((data.user as unknown) as Record<string, unknown>).email_verified);
   } catch {
     return false;
+  }
+}
+
+/**
+ * Verify email with OTP code.
+ * Wraps the InsForge email verification endpoint.
+ *
+ * @param email - User's email address
+ * @param otp - 6-digit verification code
+ * @returns true if verification succeeded
+ */
+export async function verifyEmail(email: string, otp: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${baseUrl}/api/auth/email/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, otp }),
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      return { success: false, error: data.error?.message || data.message || 'Invalid or expired verification code.' };
+    }
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Network error during verification.' };
+  }
+}
+
+/**
+ * Resend email verification code.
+ * Rate limited by InsForge server-side.
+ *
+ * @param email - User's email address
+ * @returns Result with success status or error message
+ */
+export async function resendVerificationEmail(email: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${baseUrl}/api/auth/email/send-verification`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      return { success: false, error: data.error?.message || data.message || 'Failed to resend verification code.' };
+    }
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Network error while resending verification code.' };
+  }
+}
+
+/**
+ * Send password reset email.
+ * InsForge will send a reset link to the user's email.
+ *
+ * @param email - User's email address
+ * @param redirectTo - URL to redirect after password reset
+ * @returns Result with success status or error message
+ */
+export async function sendPasswordReset(email: string, redirectTo?: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { error } = await auth.resetPasswordForEmail(email, {
+      redirectTo: redirectTo || `${window.location.origin}/reset-password`,
+    });
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Failed to send password reset email.' };
+  }
+}
+
+/**
+ * Sign up with magic link (no password required).
+ * InsForge sends a magic link to the user's email.
+ * Clicking the link creates the account and logs them in.
+ *
+ * @param email - User's email address
+ * @param redirectTo - URL to redirect after magic link click
+ * @returns Result with success status or error message
+ */
+export async function signUpWithMagicLink(email: string, redirectTo?: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { error } = await auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: redirectTo || `${window.location.origin}/dashboard`,
+        shouldCreateUser: true,
+      },
+    });
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Failed to send magic link.' };
   }
 }
 

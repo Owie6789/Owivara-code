@@ -28,9 +28,14 @@ export {
   getUser,
   getCurrentUser,
   getCurrentUserEmail,
+  refreshSession,
   isAuthenticated,
   isEmailVerified,
   callInitProfile,
+  verifyEmail,
+  resendVerificationEmail,
+  sendPasswordReset,
+  signUpWithMagicLink,
 } from './auth.js';
 
 // Database

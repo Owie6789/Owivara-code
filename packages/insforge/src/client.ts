@@ -56,6 +56,9 @@ function validateConfig(): InsForgeConfig {
 /** Create the main InsForge client with validated config */
 const config = validateConfig();
 
+/** Export the base URL for direct API calls (used by auth wrappers) */
+export const baseUrl = config.baseUrl;
+
 export const insforge: InsForgeClient = createClient({
   baseUrl: config.baseUrl,
   anonKey: config.anonKey,
