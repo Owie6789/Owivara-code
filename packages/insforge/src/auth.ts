@@ -310,12 +310,12 @@ export async function resendVerificationEmail(email: string): Promise<{ success:
  * InsForge will send a reset link to the user's email.
  *
  * @param email - User's email address
- * @param redirectTo - URL to redirect after password reset
+ * @param redirectTo - URL to redirect after password reset click
  * @returns Result with success status or error message
  */
 export async function sendPasswordReset(email: string, redirectTo?: string): Promise<{ success: boolean; error?: string }> {
   try {
-    const { error } = await auth.resetPasswordForEmail(email, {
+    const { error } = await auth.sendResetPasswordEmail(email, {
       redirectTo: redirectTo || `${window.location.origin}/reset-password`,
     });
     if (error) {
@@ -324,33 +324,6 @@ export async function sendPasswordReset(email: string, redirectTo?: string): Pro
     return { success: true };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Failed to send password reset email.' };
-  }
-}
-
-/**
- * Sign up with magic link (no password required).
- * InsForge sends a magic link to the user's email.
- * Clicking the link creates the account and logs them in.
- *
- * @param email - User's email address
- * @param redirectTo - URL to redirect after magic link click
- * @returns Result with success status or error message
- */
-export async function signUpWithMagicLink(email: string, redirectTo?: string): Promise<{ success: boolean; error?: string }> {
-  try {
-    const { error } = await auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: redirectTo || `${window.location.origin}/dashboard`,
-        shouldCreateUser: true,
-      },
-    });
-    if (error) {
-      return { success: false, error: error.message };
-    }
-    return { success: true };
-  } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : 'Failed to send magic link.' };
   }
 }
 

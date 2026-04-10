@@ -1,6 +1,6 @@
 import { useState, FormEvent, ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { signUp, signInWithOAuth, callInitProfile, signUpWithMagicLink } from '@owivara/insforge'
+import { signUp, signInWithOAuth, callInitProfile } from '@owivara/insforge'
 import SEOHead from '../components/SEOHead'
 
 export default function SignupPage() {
@@ -8,11 +8,8 @@ export default function SignupPage() {
   const [password, setPassword] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [error, setError] = useState<ReactNode>('')
-  const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
   const [oauthLoading, setOauthLoading] = useState(false)
-  const [magicLinkMode, setMagicLinkMode] = useState(false)
-  const [magicLinkSent, setMagicLinkSent] = useState(false)
   const navigate = useNavigate()
 
   const handleSubmit = async (e: FormEvent) => {
@@ -65,29 +62,6 @@ export default function SignupPage() {
     }
   }
 
-  const handleMagicLinkSignup = async (e: FormEvent) => {
-    e.preventDefault()
-    setError('')
-    setSuccess('')
-    setLoading(true)
-
-    if (!email) {
-      setError('Please enter your email address.')
-      setLoading(false)
-      return
-    }
-
-    const result = await signUpWithMagicLink(email)
-    setLoading(false)
-
-    if (result.error) {
-      setError(result.error)
-    } else {
-      setMagicLinkSent(true)
-      setSuccess('Magic link sent! Check your email and click the link to sign in.')
-    }
-  }
-
   return (
     <>
       <SEOHead
@@ -129,62 +103,17 @@ export default function SignupPage() {
             {oauthLoading ? 'Connecting...' : 'Continue with Google'}
           </button>
 
-          {/* Magic Link Button */}
-          {!magicLinkSent ? (
-            <>
-              <button
-                onClick={() => { setMagicLinkMode(!magicLinkMode); setSuccess(''); setError('') }}
-                className="w-full rounded-xl border border-green-500/20 bg-green-500/5 px-4 py-2.5 text-sm font-medium text-green-400 hover:bg-green-500/10 transition-colors mb-6"
-              >
-                {magicLinkMode ? 'Use password instead' : 'Send magic link (no password needed)'}
-              </button>
-
-              {magicLinkMode ? (
-                <form onSubmit={handleMagicLinkSignup} className="space-y-4 mb-6">
-                  <div>
-                    <label htmlFor="magicEmail" className="block text-sm font-medium text-gray-300 mb-1">
-                      Email address
-                    </label>
-                    <input
-                      id="magicEmail"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      placeholder="you@example.com"
-                      className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-white placeholder-gray-500 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full rounded-xl bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    {loading ? 'Sending magic link...' : 'Send magic link'}
-                  </button>
-                </form>
-              ) : null}
-            </>
-          ) : (
-            <div className="rounded-xl border border-green-500/20 bg-green-500/10 px-4 py-3 text-sm text-green-400 text-center mb-6">
-              {success}
-            </div>
-          )}
-
           {/* Divider */}
-          {!magicLinkSent && (
-            <div className="relative mb-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-white/10" />
-              </div>
-              <div className="relative flex justify-center text-xs">
-                <span className="bg-transparent px-3 text-gray-500">or continue with email</span>
-              </div>
+          <div className="relative mb-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-white/10" />
             </div>
-          )}
+            <div className="relative flex justify-center text-xs">
+              <span className="bg-transparent px-3 text-gray-500">or continue with email</span>
+            </div>
+          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4" hidden={magicLinkSent}>
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label htmlFor="displayName" className="block text-sm font-medium text-gray-300 mb-1">
                 Display Name
@@ -232,7 +161,7 @@ export default function SignupPage() {
 
             {error && (
               <div className="rounded-xl bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-400">
-                {typeof error === 'string' ? <span className="text-center">{error}</span> : error}
+                {error}
               </div>
             )}
 
