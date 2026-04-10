@@ -12,6 +12,7 @@
     { "path": "../../packages/types" },
     { "path": "../../packages/insforge" },
     { "path": "../../packages/baileys-core" },
-    { "path": "../../packages/ai" }
+    { "path": "../../packages/ai" },
+    { "path": "../../packages/plugin-framework" }
   ]
 }

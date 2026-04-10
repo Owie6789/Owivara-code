@@ -39,6 +39,7 @@ import pino from 'pino'
 import dotenv from 'dotenv'
 import { createClient } from '@insforge/sdk'
 import { ConnectionManager } from '@owivara/baileys-core'
+import { BotPluginManager, processBotMessage } from './bot-integration.js'
 
 dotenv.config()
 
@@ -71,6 +72,12 @@ const insforge = createClient({
 
 logger.info({ url: insforgeUrl }, 'InsForge client initialized')
 
+// ─── Plugin Framework Integration ────────────────────────────────
+
+const pluginManager = new BotPluginManager(logger, insforge.database)
+const pluginStats = pluginManager.getStats()
+logger.info(pluginStats, 'Plugin framework initialized')
+
 // ─── Shard Manager ─────────────────────────────────────────────
 
 const activeConnections = new Map<string, ConnectionManager>()
@@ -82,6 +89,7 @@ app.get('/health', (_req, res) => {
     status: 'ok',
     active_instances: activeConnections.size,
     connected: Array.from(activeConnections.values()).filter((c) => c.isConnected()).length,
+    plugins: pluginManager.getStats(),
   })
 })
 
@@ -173,9 +181,18 @@ async function provisionInstance(instanceId: string, userId: string): Promise<vo
       logger.info({ instanceId, phoneNumber }, 'WhatsApp connected')
     },
 
-    onMessage: async (_message: unknown) => {
-      // Route message through AI handler
-      await handleMessage(instanceId, userId, _message)
+    onMessage: async (rawMessage) => {
+      // Route message through the plugin framework
+      // The bot's Baileys connection passes raw message data
+      // We need the socket to send replies — ConnectionManager should expose it
+      const socket = connection.getSocket()
+      if (!socket) {
+        logger.warn({ instanceId }, 'Cannot process message — socket not available')
+        return
+      }
+      // Determine chat JID from the raw message
+      const chatJid = rawMessage.messages[0]?.key?.remoteJid || instanceId
+      await processBotMessage(socket, rawMessage, chatJid, pluginManager, instanceId, userId)
     },
 
     onError: (_error: unknown) => {
@@ -204,23 +221,6 @@ async function removeInstance(instanceId: string): Promise<void> {
     activeConnections.delete(instanceId)
     logger.info({ instanceId }, 'Instance removed')
   }
-}
-
-/**
- * Handle incoming WhatsApp message.
- * Routes through AI handler if AI is enabled for the instance.
- */
-async function handleMessage(
-  instanceId: string,
-  _userId: string,
-  _message: unknown
-): Promise<void> {
-  // TODO: Implement message routing
-  // 1. Extract text from message
-  // 2. Check if it's a command (.help, .ai, etc.)
-  // 3. If AI enabled, send to Gemini or OpenAI
-  // 4. Send response back via Baileys
-  logger.debug({ instanceId }, 'Message received (handler not yet implemented)')
 }
 
 // ─── Bootstrap ─────────────────────────────────────────────────
