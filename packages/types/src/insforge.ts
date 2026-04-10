@@ -112,8 +112,8 @@ export interface AuthUser {
   /** User email */
   email: string;
 
-  /** Email verified */
-  email_verified: boolean;
+  /** Email verified (InsForge returns camelCase) */
+  emailVerified: boolean;
 
   /** User metadata */
   user_metadata: Record<string, unknown>;

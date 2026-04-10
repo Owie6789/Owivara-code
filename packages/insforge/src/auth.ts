@@ -248,7 +248,8 @@ export async function isEmailVerified(): Promise<boolean> {
   try {
     const { data, error } = await auth.getCurrentUser();
     if (error || !data?.user) return false;
-    return Boolean(((data.user as unknown) as Record<string, unknown>).email_verified);
+    // InsForge returns camelCase: emailVerified
+    return Boolean(((data.user as unknown) as Record<string, unknown>).emailVerified);
   } catch {
     return false;
   }
@@ -271,9 +272,28 @@ export async function verifyEmail(email: string, otp: string): Promise<{ success
     });
     const data = await res.json();
 
+    console.log('[INSFORGE] verifyEmail response status:', res.status)
+    console.log('[INSFORGE] verifyEmail response data:', JSON.stringify(data, null, 2))
+
     if (!res.ok) {
       return { success: false, error: data.error?.message || data.message || 'Invalid or expired verification code.' };
     }
+
+    // InsForge returns a session (accessToken) after successful verification.
+    // Store it manually so the SDK picks it up on next getCurrentUser() call.
+    // The SDK typically stores tokens in localStorage - we store the accessToken
+    // so subsequent SDK calls will use this valid session.
+    if (data.accessToken) {
+      console.log('[INSFORGE] Storing session token from verification...')
+      // Store in all common locations the SDK might check
+      localStorage.setItem('insforge.auth.token', data.accessToken)
+      localStorage.setItem('insforge:authToken', data.accessToken)
+      // Also store the full session for completeness
+      if (data.user) {
+        localStorage.setItem('insforge.auth.user', JSON.stringify(data.user))
+      }
+    }
+
     return { success: true };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Network error during verification.' };

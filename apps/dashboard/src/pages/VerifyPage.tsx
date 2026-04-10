@@ -55,7 +55,8 @@ export default function VerifyPage() {
     const checkVerified = async () => {
       try {
         const user = await getCurrentUser()
-        if (mounted && user && ((user as unknown) as Record<string, unknown>).email_verified) {
+        if (mounted && user && ((user as unknown) as Record<string, unknown>).emailVerified) {
+          // User is verified AND has a session — redirect to dashboard
           window.location.href = '/dashboard'
         }
       } catch {
@@ -66,6 +67,14 @@ export default function VerifyPage() {
     const interval = setInterval(checkVerified, 5000)
     return () => { mounted = false; clearInterval(interval) }
   }, [navigate, email])
+
+  // Mask email for privacy display (e.g., em*****@example.com)
+  const maskedEmail = (() => {
+    const [local, domain] = email.split('@')
+    if (!domain) return email
+    const masked = local.charAt(0) + '***' + local.charAt(local.length - 1)
+    return `${masked}@${domain}`
+  })()
 
   const handleResend = useCallback(async () => {
     if (!email) return
@@ -108,19 +117,25 @@ export default function VerifyPage() {
     setSuccess('')
     setLoading(true)
 
+    console.log('[VERIFY] Attempting verification for:', email, 'with OTP length:', otp.length)
+
     try {
       const result = await verifyEmail(email, otp)
+      console.log('[VERIFY] Verification result:', result)
+      
       if (!result.success) {
         setError(result.error || 'Invalid or expired verification code.')
       } else {
         setSuccess('Email verified successfully!')
+        // Verification succeeded - InsForge returns a session (accessToken)
+        // User is now logged in, redirect directly to dashboard
+        console.log('[VERIFY] Success! Redirecting to dashboard...')
         setTimeout(() => {
-          navigate('/login', {
-            state: { message: 'Email verified successfully! Please sign in.' }
-          })
-        }, 1000)
+          window.location.href = '/dashboard'
+        }, 1500)
       }
-    } catch {
+    } catch (err) {
+      console.error('[VERIFY] Error:', err)
       setError('Network error. Please check your connection and try again.')
     } finally {
       setLoading(false)
@@ -180,7 +195,9 @@ export default function VerifyPage() {
                 <DialogDescription className="text-sm text-gray-500">
                   We sent a 6-digit code to
                 </DialogDescription>
-                <p className="mt-1 text-sm font-medium text-green-400">{email}</p>
+                <p className="mt-1 text-sm font-medium text-green-400" title={email}>
+                  {maskedEmail}
+                </p>
               </DialogHeader>
             </div>
 
@@ -224,6 +241,8 @@ export default function VerifyPage() {
                   onChange={setCode}
                   onComplete={handleOTPComplete}
                   maxLength={6}
+                  className="[&>div]:gap-3"
+                  containerClassName="[&>div]:border-white/10 [&>div>div]:border-white/20 [&>div>div]:bg-white/5 [&>div>div]:text-white [&>div>div]:data-[active=true]:border-green-500/50 [&>div>div]:data-[active=true]:ring-green-500/20"
                 />
               </div>
             </div>
