@@ -15,6 +15,7 @@
   },
   "devDependencies": {
     "@owivara/types": "workspace:*",
+    "@hapi/boom": "^10.0.1",
     "@types/node": "^24.12.0",
     "typescript": "~5.9.3"
   }

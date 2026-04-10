@@ -35,7 +35,7 @@ import makeWASocket, {
   type WASocket,
   type BaileysEventMap,
 } from 'baileys';
-import { Boom } from '@hapi/boom';
+import type { Boom } from '@hapi/boom';
 import pino from 'pino';
 import type { BotStatus } from '@owivara/types';
 import { EventEmitter } from 'events';
@@ -44,18 +44,8 @@ import path from 'path';
 
 const logger = pino({ level: 'info' });
 
-/** Connection event types */
-interface ConnectionEvents {
-  'qr': (qr: string) => void;
-  'status': (status: BotStatus, data?: Record<string, unknown>) => void;
-  'connected': (sock: WASocket) => void;
-  'disconnected': (reason?: string) => void;
-  'error': (error: Error) => void;
-  'message': (message: BaileysEventMap['messages.upsert']) => void;
-}
-
 /** Connection manager options */
-interface ConnectionOptions {
+export interface ConnectionOptions {
   /** Unique session ID for this connection */
   sessionId: string;
 

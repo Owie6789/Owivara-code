@@ -28,7 +28,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import type { AuthenticationCreds, AuthenticationState } from 'baileys';
+import type { AuthenticationCreds } from 'baileys';
 
 /** Session storage interface */
 export interface SessionStorage {

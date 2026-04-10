@@ -87,8 +87,7 @@ app.get('/health', (_req, res) => {
 
 // ─── QR Code Endpoint ─────────────────────────────────────────
 
-app.get('/qr/:instanceId', (req, res) => {
-  const instanceId = req.params.instanceId
+app.get('/qr/:instanceId', (_req, res) => {
   // QR is stored in InsForge by ConnectionManager
   // Dashboard polls InsForge for QR code display
   res.json({ message: 'QR code is stored in InsForge — poll the dashboard for it' })
@@ -156,7 +155,7 @@ async function provisionInstance(instanceId: string, userId: string): Promise<vo
         .eq('id', instanceId)
     },
 
-    onStatus: async (status, data) => {
+    onStatus: async (status: string, data?: Record<string, unknown>) => {
       logger.info({ instanceId, status }, 'Status update')
       // Update status in InsForge
       const updateData: Record<string, unknown> = { status }
@@ -169,18 +168,18 @@ async function provisionInstance(instanceId: string, userId: string): Promise<vo
         .eq('id', instanceId)
     },
 
-    onConnected: (sock) => {
-      const phoneNumber = sock.user?.id?.split(':')?.[0]
+    onConnected: (sock: unknown) => {
+      const phoneNumber = (sock as Record<string, { id?: string }> | undefined)?.user?.id?.split(':')?.[0]
       logger.info({ instanceId, phoneNumber }, 'WhatsApp connected')
     },
 
-    onMessage: async (message) => {
+    onMessage: async (_message: unknown) => {
       // Route message through AI handler
-      await handleMessage(instanceId, userId, message)
+      await handleMessage(instanceId, userId, _message)
     },
 
-    onError: (error) => {
-      logger.error({ instanceId, error }, 'Connection error')
+    onError: (_error: unknown) => {
+      logger.error({ instanceId, error: _error }, 'Connection error')
     },
   })
 
@@ -213,15 +212,15 @@ async function removeInstance(instanceId: string): Promise<void> {
  */
 async function handleMessage(
   instanceId: string,
-  userId: string,
-  message: unknown
+  _userId: string,
+  _message: unknown
 ): Promise<void> {
   // TODO: Implement message routing
   // 1. Extract text from message
   // 2. Check if it's a command (.help, .ai, etc.)
   // 3. If AI enabled, send to Gemini or OpenAI
   // 4. Send response back via Baileys
-  logger.debug({ instanceId, userId }, 'Message received (handler not yet implemented)')
+  logger.debug({ instanceId }, 'Message received (handler not yet implemented)')
 }
 
 // ─── Bootstrap ─────────────────────────────────────────────────
