@@ -3,7 +3,6 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { signIn, signInWithOAuth, RateLimiter } from '@owivara/insforge'
 import SEOHead from '../components/SEOHead'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
@@ -20,26 +19,19 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [oauthLoading, setOauthLoading] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
-  const [, setDialogOpen] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
 
-  // Handle verification success message or session expiry message from router
   useEffect(() => {
     const state = location.state as { message?: string; expired?: boolean } | null
     if (state?.message) setSuccess(state.message)
     if (state?.expired) setError('Your session has expired. Please log in again.')
-    // Open dialog if there's a message
-    if (state?.message || state?.expired) {
-      setDialogOpen(true)
-    }
   }, [location.state])
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setError('')
 
-    // Client-side rate limit: 5 attempts per minute
     if (!loginLimiter.canAttempt('login', 5, 60_000)) {
       const waitSec = Math.ceil(loginLimiter.timeUntilNextAttempt('login', 60_000) / 1000)
       setError(`Too many login attempts. Please wait ${waitSec}s and try again.`)
@@ -51,24 +43,17 @@ export default function LoginPage() {
     setLoading(false)
     if (result.error) {
       const msg = result.error.message.toLowerCase()
-      // If InsForge blocks login due to unverified email, redirect to verify
       if (msg.includes('email') && (msg.includes('verif') || msg.includes('confirm'))) {
         navigate(`/verify?email=${encodeURIComponent(email)}`)
       } else {
         setError(result.error.message)
       }
     } else {
-      // Use the email verification status from the signin response
-      // InsForge returns camelCase: emailVerified (not email_verified)
       const user = result.data as unknown as Record<string, unknown>
       const isVerified = user.emailVerified === true
-      console.log('[LOGIN] isVerified:', isVerified, '- value:', user.emailVerified)
-
       if (!isVerified) {
-        console.log('[LOGIN] User NOT verified, redirecting to verify page')
         navigate(`/verify?email=${encodeURIComponent(email)}`)
       } else {
-        console.log('[LOGIN] User verified, redirecting to dashboard')
         navigate('/dashboard', { state: { message: 'Signed in successfully!' } })
       }
     }
@@ -77,7 +62,8 @@ export default function LoginPage() {
   const handleGoogleLogin = async () => {
     setError('')
     setOauthLoading(true)
-    const { url, error } = await signInWithOAuth('google', window.location.origin + '/dashboard')
+    // Redirect to our callback page so we can handle OAuth errors properly
+    const { url, error } = await signInWithOAuth('google', window.location.origin + '/auth/callback')
     setOauthLoading(false)
     if (error) setError(error)
     else if (url) window.location.href = url
@@ -92,8 +78,7 @@ export default function LoginPage() {
         noindex={true}
       />
 
-      {/* Full-page dark background */}
-      <div className="flex min-h-screen items-center justify-center bg-[#0a0a0a] p-4">
+      <div className="flex min-h-screen items-center justify-center bg-[#0a0a0a] px-4">
 
         {/* Back button */}
         <Link
@@ -116,150 +101,149 @@ export default function LoginPage() {
           <span className="text-sm font-semibold text-gray-400">Owivara</span>
         </div>
 
-        {/* Login Dialog */}
-        <Dialog open={true} onOpenChange={() => navigate('/')}>
-          <DialogContent className="border-white/10 bg-[#0d0d0d] text-white shadow-2xl shadow-black/50 sm:max-w-[420px]">
-            {/* Header with logo */}
-            <div className="flex flex-col items-center gap-3 pb-2">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/10">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
-                  <circle cx="16" cy="16" r="12" fill="none" />
-                  <circle cx="16" cy="16" r="4" fill="currentColor" />
-                </svg>
-              </div>
-              <DialogHeader className="text-center">
-                <DialogTitle className="text-xl font-semibold tracking-tight">Welcome back</DialogTitle>
-                <DialogDescription className="text-sm text-gray-500">
-                  Enter your credentials to login to your account.
-                </DialogDescription>
-              </DialogHeader>
-            </div>
-
-            {/* Error message */}
-            <AnimatePresence>
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="overflow-hidden"
-                >
-                  <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-sm text-red-400 text-center">
-                    {error}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Success message */}
-            <AnimatePresence>
-              {success && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="overflow-hidden"
-                >
-                  <div className="rounded-lg border border-green-500/20 bg-green-500/10 px-4 py-2.5 text-sm text-green-400 text-center">
-                    {success}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-              <div className="space-y-4">
-                {/* Email */}
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-sm font-medium text-gray-300">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    placeholder="hi@yourcompany.com"
-                    className="h-10 border-white/10 bg-white/5 text-white placeholder:text-gray-600 focus-visible:border-green-500/50 focus-visible:ring-green-500/20"
-                  />
-                </div>
-
-                {/* Password */}
-                <div className="space-y-2">
-                  <Label htmlFor="password" className="text-sm font-medium text-gray-300">Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    placeholder="Enter your password"
-                    className="h-10 border-white/10 bg-white/5 text-white placeholder:text-gray-600 focus-visible:border-green-500/50 focus-visible:ring-green-500/20"
-                  />
-                </div>
-              </div>
-
-              {/* Remember me + Forgot password */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="remember"
-                    checked={rememberMe}
-                    onCheckedChange={(checked) => setRememberMe(checked as boolean)}
-                    className="border-white/20 data-[state=checked]:border-green-500 data-[state=checked]:bg-green-500"
-                  />
-                  <Label htmlFor="remember" className="text-sm font-normal text-gray-500">
-                    Remember me
-                  </Label>
-                </div>
-                <Link to="/reset-password" className="text-sm font-medium text-gray-400 underline underline-offset-4 hover:text-gray-300">
-                  Forgot password?
-                </Link>
-              </div>
-
-              {/* Sign in button */}
-              <Button
-                type="submit"
-                disabled={loading}
-                className="h-10 w-full rounded-lg bg-white text-sm font-medium text-black hover:bg-white/90 disabled:opacity-50"
-              >
-                {loading ? 'Signing in...' : 'Sign in'}
-              </Button>
-            </form>
-
-            {/* Divider */}
-            <div className="flex items-center gap-3">
-              <div className="h-px flex-1 bg-white/10" />
-              <span className="text-xs text-gray-600">Or</span>
-              <div className="h-px flex-1 bg-white/10" />
-            </div>
-
-            {/* Google OAuth */}
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleGoogleLogin}
-              disabled={oauthLoading}
-              className="h-10 w-full rounded-lg border-white/10 bg-transparent text-sm font-medium text-white hover:bg-white/5 hover:text-white disabled:opacity-50"
-            >
-              <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+        {/* Login Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20, scale: 0.97 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          className="w-full max-w-[400px] rounded-2xl border border-white/10 bg-[#0d0d0d] p-6 shadow-2xl shadow-black/50 sm:p-8"
+        >
+          {/* Header */}
+          <div className="flex flex-col items-center gap-3 pb-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/10">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+                <circle cx="12" cy="12" r="10" />
+                <circle cx="12" cy="12" r="3" fill="currentColor" />
               </svg>
-              {oauthLoading ? 'Connecting...' : 'Login with Google'}
-            </Button>
+            </div>
+            <div className="text-center">
+              <h1 className="text-xl font-semibold text-white tracking-tight">Welcome back</h1>
+              <p className="mt-1 text-sm text-gray-500">Enter your credentials to login to your account.</p>
+            </div>
+          </div>
 
-            {/* Sign up link */}
-            <p className="text-center text-sm text-gray-500">
-              Don't have an account?{' '}
-              <Link to="/signup" className="font-medium text-green-400 hover:text-green-300 transition-colors">
-                Create one free
+          {/* Error message */}
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden mb-4"
+              >
+                <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-sm text-red-400 text-center">
+                  {error}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Success message */}
+          <AnimatePresence>
+            {success && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden mb-4"
+              >
+                <div className="rounded-lg border border-green-500/20 bg-green-500/10 px-4 py-2.5 text-sm text-green-400 text-center">
+                  {success}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-medium text-gray-300">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  placeholder="hi@yourcompany.com"
+                  className="h-10 rounded-lg border-white/10 bg-white/5 text-white placeholder:text-gray-600 focus-visible:border-green-500/50 focus-visible:ring-green-500/20"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-sm font-medium text-gray-300">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  placeholder="Enter your password"
+                  className="h-10 rounded-lg border-white/10 bg-white/5 text-white placeholder:text-gray-600 focus-visible:border-green-500/50 focus-visible:ring-green-500/20"
+                />
+              </div>
+            </div>
+
+            {/* Remember me + Forgot password */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="remember"
+                  checked={rememberMe}
+                  onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+                  className="border-white/20 data-[state=checked]:border-green-500 data-[state=checked]:bg-green-500"
+                />
+                <Label htmlFor="remember" className="text-sm font-normal text-gray-500">
+                  Remember me
+                </Label>
+              </div>
+              <Link to="/reset-password" className="text-sm font-medium text-gray-400 underline underline-offset-4 hover:text-gray-300">
+                Forgot password?
               </Link>
-            </p>
-          </DialogContent>
-        </Dialog>
+            </div>
+
+            {/* Sign in button */}
+            <Button
+              type="submit"
+              disabled={loading}
+              className="h-10 w-full rounded-lg bg-white text-sm font-medium text-[#0a0a0a] hover:bg-white/90 disabled:opacity-50"
+            >
+              {loading ? 'Signing in...' : 'Sign in'}
+            </Button>
+          </form>
+
+          {/* Divider */}
+          <div className="mt-5 flex items-center gap-3">
+            <div className="h-px flex-1 bg-white/10" />
+            <span className="text-xs text-gray-600">Or</span>
+            <div className="h-px flex-1 bg-white/10" />
+          </div>
+
+          {/* Google OAuth */}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleGoogleLogin}
+            disabled={oauthLoading}
+            className="mt-4 h-10 w-full rounded-lg border-white/10 bg-transparent text-sm font-medium text-white hover:bg-white/5 hover:text-white disabled:opacity-50"
+          >
+            <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+            </svg>
+            {oauthLoading ? 'Connecting...' : 'Login with Google'}
+          </Button>
+
+          {/* Sign up link */}
+          <p className="mt-6 text-center text-sm text-gray-500">
+            Don't have an account?{' '}
+            <Link to="/signup" className="font-medium text-green-400 hover:text-green-300 transition-colors">
+              Create one free
+            </Link>
+          </p>
+        </motion.div>
       </div>
     </>
   )
