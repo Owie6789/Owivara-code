@@ -73,3 +73,4 @@ import './plugins/fancy.js';
 import './plugins/youtube.js';
 import './plugins/social.js';
 import './plugins/autodl.js';
+import './plugins/chatbot.js';
