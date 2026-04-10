@@ -36,6 +36,7 @@ export {
   resendVerificationEmail,
   sendPasswordReset,
   syncAuthAcrossTabs,
+  debugAuthStorage,
 } from './auth.js';
 
 // Database

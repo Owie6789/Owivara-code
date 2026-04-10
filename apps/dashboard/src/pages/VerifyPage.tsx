@@ -127,11 +127,13 @@ export default function VerifyPage() {
         setError(result.error || 'Invalid or expired verification code.')
       } else {
         setSuccess('Email verified successfully!')
-        // Verification succeeded - InsForge returns a session (accessToken)
-        // User is now logged in, redirect directly to dashboard
-        console.log('[VERIFY] Success! Redirecting to dashboard...')
+        // Per InsForge docs: verification doesn't create a session.
+        // Redirect to login so the user can sign in and establish their session.
+        console.log('[VERIFY] Redirecting to login for session creation...')
         setTimeout(() => {
-          window.location.href = '/dashboard'
+          navigate('/login', {
+            state: { message: 'Email verified successfully! Please sign in.' }
+          })
         }, 1500)
       }
     } catch (err) {

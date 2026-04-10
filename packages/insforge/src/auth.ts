@@ -37,6 +37,21 @@ interface AuthSuccess<T> {
 type AuthResult<T> = AuthSuccess<T> | AuthError;
 
 /**
+ * Decode a JWT payload to inspect claims (for debugging only, no validation).
+ */
+function decodeJWTDebug(token: string): Record<string, unknown> | null {
+  try {
+    const parts = token.split('.')
+    if (parts.length !== 3) return null
+    const payload = parts[1]
+    const decoded = atob(payload)
+    return JSON.parse(decoded)
+  } catch {
+    return null
+  }
+}
+
+/**
  * Sign up a new user with email and password.
  *
  * @param email - User's email address
@@ -113,6 +128,19 @@ export async function signIn(
       return { error: { message: error.message, code: 'SIGNIN_FAILED' }, data: null };
     }
 
+    // DEBUG: Inspect the signin response and JWT claims
+    console.log('[INSFORGE] signInWithPassword response keys:', Object.keys(data as Record<string, unknown>))
+    const sessionData = data as unknown as Record<string, unknown>
+    if (sessionData.accessToken) {
+      const claims = decodeJWTDebug(sessionData.accessToken as string)
+      console.log('[INSFORGE] JWT claims from signin:', claims)
+    }
+    if (sessionData.user) {
+      const userData = sessionData.user as Record<string, unknown>
+      console.log('[INSFORGE] User object from signin:', JSON.stringify(userData, null, 2))
+      console.log('[INSFORGE] emailVerified field:', userData.emailVerified, '| type:', typeof userData.emailVerified)
+    }
+
     // signInWithPassword returns session data with user object
     return { error: null, data: data as unknown as AuthUser };
   } catch (err) {
@@ -152,6 +180,32 @@ export async function signOut(): Promise<AuthResult<void>> {
 }
 
 /**
+ * Debug utility: inspect what the SDK has stored in localStorage.
+ * Call this in the browser console: import { debugAuthStorage } from '@owivara/insforge'
+ */
+export function debugAuthStorage(): Record<string, unknown> {
+  const keys: Record<string, unknown> = {}
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i)!
+    if (key.includes('insforge') || key.includes('auth') || key.includes('token') || key.includes('session')) {
+      try {
+        const val = localStorage.getItem(key)
+        // If it looks like a JWT, decode it
+        if (val && val.split('.').length === 3) {
+          keys[key] = { raw: val.substring(0, 50) + '...', decoded: decodeJWTDebug(val) }
+        } else {
+          keys[key] = val?.substring(0, 100) ?? null
+        }
+      } catch {
+        keys[key] = '<unreadable>'
+      }
+    }
+  }
+  console.log('[INSFORGE] localStorage auth keys:', JSON.stringify(keys, null, 2))
+  return keys
+}
+
+/**
  * Check if the user is currently authenticated.
  *
  * @returns true if authenticated, false otherwise
@@ -159,8 +213,16 @@ export async function signOut(): Promise<AuthResult<void>> {
 export async function isAuthenticated(): Promise<boolean> {
   try {
     const { data, error } = await auth.getCurrentUser();
+    console.log('[INSFORGE] isAuthenticated check:', { hasError: !!error, hasUser: !!data?.user })
+    if (data?.user) {
+      const userData = data.user as Record<string, unknown>
+      console.log('[INSFORGE] Current user emailVerified:', userData.emailVerified)
+    } else if (error) {
+      console.log('[INSFORGE] isAuthenticated error:', error)
+    }
     return !error && data?.user !== null;
-  } catch {
+  } catch (err) {
+    console.log('[INSFORGE] isAuthenticated exception:', err)
     return false;
   }
 }
@@ -279,20 +341,12 @@ export async function verifyEmail(email: string, otp: string): Promise<{ success
       return { success: false, error: data.error?.message || data.message || 'Invalid or expired verification code.' };
     }
 
-    // InsForge returns a session (accessToken) after successful verification.
-    // Store it manually so the SDK picks it up on next getCurrentUser() call.
-    // The SDK typically stores tokens in localStorage - we store the accessToken
-    // so subsequent SDK calls will use this valid session.
-    if (data.accessToken) {
-      console.log('[INSFORGE] Storing session token from verification...')
-      // Store in all common locations the SDK might check
-      localStorage.setItem('insforge.auth.token', data.accessToken)
-      localStorage.setItem('insforge:authToken', data.accessToken)
-      // Also store the full session for completeness
-      if (data.user) {
-        localStorage.setItem('insforge.auth.user', JSON.stringify(data.user))
-      }
-    }
+    // Per InsForge docs: email verification is a pre-authentication step.
+    // It marks the email as verified but does NOT create a session.
+    // The user must sign in separately to establish their session.
+    // The accessToken returned by the verify endpoint is informational only —
+    // the SDK uses httpOnly cookies for session management, not manual token storage.
+    console.log('[INSFORGE] Email verified. User must sign in to establish session.')
 
     return { success: true };
   } catch (err) {
