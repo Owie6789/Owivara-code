@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { motion } from 'framer-motion'
+import { motion, useMotionValue, useTransform } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
 import { Link } from 'react-router-dom'
 import SEOHead from '../components/SEOHead'
@@ -139,31 +139,6 @@ function HeroIconRotator() {
   )
 }
 
-// ─── Animated Counter ─────────────────────────────────────────────────────────
-function AnimatedCounter({ end, suffix = '' }: { end: number; suffix?: string }) {
-  const [count, setCount] = useState(0)
-  const [ref, inView] = useInView({ threshold: 0.3, triggerOnce: true })
-
-  useEffect(() => {
-    if (!inView) return
-    let start = 0
-    const duration = 1500
-    const increment = end / (duration / 16)
-    const timer = setInterval(() => {
-      start += increment
-      if (start >= end) {
-        setCount(end)
-        clearInterval(timer)
-      } else {
-        setCount(Math.floor(start))
-      }
-    }, 16)
-    return () => clearInterval(timer)
-  }, [inView, end])
-
-  return <span ref={ref} className="tabular-nums">{count.toLocaleString()}{suffix}</span>
-}
-
 // ─── Scroll-reveal Section ────────────────────────────────────────────────────
 const Section = React.forwardRef<HTMLElement, { children: React.ReactNode; className?: string; id?: string }>(
   ({ children, className = '', id }, ref) => {
@@ -256,59 +231,146 @@ function FloatingIcon({ color, size, initialX, initialY }: { color: string; size
 // ─── Scroll-Jacked Stats Container — pins and reveals stats on scroll ────────
 function ScrollJackedStats() {
   const containerRef = useRef<HTMLDivElement>(null)
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ['start start', 'end end'],
-  })
+  const iconsRef = useRef<HTMLDivElement>(null)
 
-  // Map scroll progress (0-1) to active stat index (0, 1, 2)
-  const activeIndex = useTransform(scrollYProgress, [0, 0.33, 0.66, 1], [0, 1, 2, 2])
+  // Manual scroll progress — maps 0→1 across the FULL scroll distance of 350vh
+  // NOT using useScroll because it fires on container enter/exit, not scroll-through
+  const scrollProgress = useMotionValue(0)
 
-  const stats = [
-    { value: '2,400+', label: 'bots live and running' },
-    { value: '1.2M+', label: 'messages handled' },
-    { value: '11,400+', label: 'businesses using Owivara' },
-  ]
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!containerRef.current) return
+      const rect = containerRef.current.getBoundingClientRect()
+      const containerHeight = containerRef.current.offsetHeight
+      const viewportHeight = window.innerHeight
+      // progress = 0 when container top is at viewport bottom (just entering)
+      // progress = 1 when container bottom is at viewport top (just leaving)
+      const scrolled = viewportHeight - rect.top
+      const totalScroll = containerHeight + viewportHeight
+      scrollProgress.set(Math.max(0, Math.min(1, scrolled / totalScroll)))
+    }
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    handleScroll() // initial
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [scrollProgress])
+
+  // Floating icons entry animation
+  useEffect(() => {
+    if (!iconsRef.current) return
+    const icons = iconsRef.current.querySelectorAll('.floating-icon')
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            icons.forEach((icon, i) => {
+              setTimeout(() => {
+                ;(icon as HTMLElement).style.opacity = '1'
+                ;(icon as HTMLElement).style.transform = 'scale(1)'
+              }, i * 80)
+            })
+            observer.disconnect()
+          }
+        })
+      },
+      { threshold: 0.1 }
+    )
+    observer.observe(iconsRef.current)
+    return () => observer.disconnect()
+  }, [])
+
+  // Map scroll progress (0→1) to which stat is active
+  // 350vh = ~3.5x viewport scroll. Each stat gets ~1 viewport scroll to transition.
+  const stat0Opacity = useTransform(scrollProgress, [0, 0.05, 0.25, 0.5], [0, 1, 1, 0])
+  const stat0Y = useTransform(scrollProgress, [0, 0.05, 0.25, 0.5], [60, 0, 0, -60])
+  const stat0Scale = useTransform(scrollProgress, [0, 0.05, 0.25, 0.5], [0.9, 1, 1, 0.9])
+
+  const stat1Opacity = useTransform(scrollProgress, [0.35, 0.4, 0.55, 0.75, 0.8], [0, 1, 1, 1, 0])
+  const stat1Y = useTransform(scrollProgress, [0.35, 0.4, 0.55, 0.75, 0.8], [60, 0, 0, 0, -60])
+  const stat1Scale = useTransform(scrollProgress, [0.35, 0.4, 0.55, 0.75, 0.8], [0.9, 1, 1, 1, 0.9])
+
+  const stat2Opacity = useTransform(scrollProgress, [0.65, 0.7, 0.8, 0.95], [0, 1, 1, 1])
+  const stat2Y = useTransform(scrollProgress, [0.65, 0.7, 0.8, 0.95], [60, 0, 0, 0])
+  const stat2Scale = useTransform(scrollProgress, [0.65, 0.7, 0.8, 0.95], [0.9, 1, 1, 1])
+
+  // Progress dots
+  const dot0 = useTransform(scrollProgress, [0, 0.15, 0.4], [0.8, 1.4, 0.8])
+  const dot0Color = useTransform(scrollProgress, [0, 0.12, 0.4], ['#d1d5db', '#0a0a0a', '#d1d5db'])
+  const dot1 = useTransform(scrollProgress, [0.3, 0.5, 0.7], [0.8, 1.4, 0.8])
+  const dot1Color = useTransform(scrollProgress, [0.3, 0.47, 0.7], ['#d1d5db', '#0a0a0a', '#d1d5db'])
+  const dot2 = useTransform(scrollProgress, [0.6, 0.75, 0.95], [0.8, 1.4, 0.8])
+  const dot2Color = useTransform(scrollProgress, [0.6, 0.72, 0.95], ['#d1d5db', '#0a0a0a', '#d1d5db'])
 
   return (
-    <div ref={containerRef} style={{ height: '300vh' }}>
-      <div className="sticky top-0 h-screen flex flex-col items-center justify-center">
-        <p className="text-sm font-medium text-gray-400 mb-12">A growing library of</p>
-        <div className="relative w-full max-w-lg h-48 flex items-center justify-center overflow-hidden">
-          {stats.map((stat, i) => (
-            <motion.div
+    <div ref={containerRef} style={{ height: '350vh' }}>
+      <div className="sticky top-0 h-screen flex flex-col items-center justify-center bg-white">
+        {/* Floating icons background */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden" ref={iconsRef}>
+          {[
+            { color: '#22c55e', size: 'w-[72px] h-[72px]', x: 60, y: 80 },
+            { color: '#3b82f6', size: 'w-[56px] h-[56px]', x: 280, y: 140 },
+            { color: '#8b5cf6', size: 'w-[80px] h-[80px]', x: 520, y: 60 },
+            { color: '#f59e0b', size: 'w-[64px] h-[64px]', x: 120, y: 380 },
+            { color: '#ef4444', size: 'w-[88px] h-[88px]', x: 680, y: 280 },
+            { color: '#06b6d4', size: 'w-[60px] h-[60px]', x: 200, y: 500 },
+            { color: '#22c55e', size: 'w-[76px] h-[76px]', x: 580, y: 420 },
+            { color: '#3b82f6', size: 'w-[48px] h-[48px]', x: 420, y: 200 },
+          ].map((icon, i) => (
+            <FloatingIcon
               key={i}
-              className="absolute inset-0 flex flex-col items-center justify-center"
-              style={{
-                opacity: useTransform(activeIndex, (v) => (v === i ? 1 : 0)),
-                y: useTransform(activeIndex, (v) => {
-                  if (v === i) return 0
-                  if (v > i) return -80
-                  return 80
-                }),
-                scale: useTransform(activeIndex, (v) => (v === i ? 1 : 0.85)),
-              }}
-              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <p className="text-5xl md:text-7xl lg:text-8xl font-extrabold text-[#0a0a0a] tracking-[-0.04em] leading-tight tabular-nums">
-                {stat.value}
-              </p>
-              <p className="mt-3 text-sm md:text-base text-gray-500 font-medium">{stat.label}</p>
-            </motion.div>
-          ))}
-        </div>
-        {/* Progress dots */}
-        <div className="flex gap-2 mt-8">
-          {stats.map((_, i) => (
-            <motion.div
-              key={i}
-              className="w-2 h-2 rounded-full bg-gray-300"
-              animate={{
-                backgroundColor: useTransform(activeIndex, (v) => (v === i ? '#0a0a0a' : '#d1d5db')),
-                scale: useTransform(activeIndex, (v) => (v === i ? 1.3 : 1)),
-              }}
+              color={icon.color}
+              size={icon.size}
+              initialX={icon.x}
+              initialY={icon.y}
             />
           ))}
+        </div>
+
+        {/* Content - above floating icons */}
+        <div className="relative z-10 text-center px-6">
+          <p className="text-sm font-medium text-gray-400 mb-12">A growing library of</p>
+
+          {/* Stats - all layered on top of each other, revealed by scroll */}
+          <div className="relative w-full max-w-lg mx-auto h-48 flex items-center justify-center">
+            {/* Stat 0: Bots */}
+            <motion.div
+              className="absolute inset-0 flex flex-col items-center justify-center"
+              style={{ opacity: stat0Opacity, y: stat0Y, scale: stat0Scale }}
+            >
+              <p className="text-5xl md:text-7xl lg:text-8xl font-extrabold text-[#0a0a0a] tracking-[-0.04em] leading-tight tabular-nums">
+                2,400+
+              </p>
+              <p className="mt-3 text-sm md:text-base text-gray-500 font-medium">bots live and running</p>
+            </motion.div>
+
+            {/* Stat 1: Messages */}
+            <motion.div
+              className="absolute inset-0 flex flex-col items-center justify-center"
+              style={{ opacity: stat1Opacity, y: stat1Y, scale: stat1Scale }}
+            >
+              <p className="text-5xl md:text-7xl lg:text-8xl font-extrabold text-[#0a0a0a] tracking-[-0.04em] leading-tight tabular-nums">
+                1.2M+
+              </p>
+              <p className="mt-3 text-sm md:text-base text-gray-500 font-medium">messages handled</p>
+            </motion.div>
+
+            {/* Stat 2: Businesses */}
+            <motion.div
+              className="absolute inset-0 flex flex-col items-center justify-center"
+              style={{ opacity: stat2Opacity, y: stat2Y, scale: stat2Scale }}
+            >
+              <p className="text-5xl md:text-7xl lg:text-8xl font-extrabold text-[#0a0a0a] tracking-[-0.04em] leading-tight tabular-nums">
+                11,400+
+              </p>
+              <p className="mt-3 text-sm md:text-base text-gray-500 font-medium">businesses using Owivara</p>
+            </motion.div>
+          </div>
+
+          {/* Progress dots */}
+          <div className="flex gap-2 justify-center mt-10">
+            <motion.div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: dot0Color, scale: dot0 }} />
+            <motion.div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: dot1Color, scale: dot1 }} />
+            <motion.div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: dot2Color, scale: dot2 }} />
+          </div>
         </div>
       </div>
     </div>
@@ -392,9 +454,11 @@ export default function LandingPage() {
   const [tab, setTab] = useState(0)
   const [scrolled, setScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [activeSection, setActiveSection] = useState('')
+  const [activeSection, setActiveSection] = useState('features')
   const tabs = ['All', 'Setup', 'AI', 'Monitoring']
-  const floatingIconsRef = useRef<HTMLDivElement>(null)
+  const featuresRef = useRef<HTMLElement>(null)
+  const pricingRef = useRef<HTMLElement>(null)
+  const testimonialsRef = useRef<HTMLElement>(null)
 
   // Scroll detection for nav pill + active section tracking
   useEffect(() => {
@@ -402,53 +466,33 @@ export default function LandingPage() {
       const scrollY = window.scrollY
       setScrolled(scrollY > 60)
 
-      // Detect active section based on scroll position
-      const sections = ['features', 'pricing', 'testimonials']
-      const offsets = sections.map(id => {
-        const el = document.getElementById(id)
-        return el ? el.offsetTop - 120 : 0
-      })
-      const heights = sections.map(id => {
-        const el = document.getElementById(id)
-        return el ? el.offsetHeight : 0
+      // Detect active section based on element positions relative to viewport
+      const viewportCenter = window.innerHeight / 2
+      const sections = [
+        { id: 'features', ref: featuresRef },
+        { id: 'pricing', ref: pricingRef },
+        { id: 'testimonials', ref: testimonialsRef },
+      ]
+
+      let closest = 'features'
+      let closestDist = Infinity
+
+      sections.forEach(({ id, ref }) => {
+        if (!ref.current) return
+        const rect = ref.current.getBoundingClientRect()
+        const center = rect.top + rect.height / 2
+        const dist = Math.abs(center - viewportCenter)
+        if (dist < closestDist) {
+          closestDist = dist
+          closest = id
+        }
       })
 
-      let current = ''
-      for (let i = 0; i < sections.length; i++) {
-        if (scrollY >= offsets[i] && scrollY < offsets[i] + heights[i]) {
-          current = sections[i]
-          break
-        }
-      }
-      setActiveSection(current)
+      setActiveSection(closest)
     }
     window.addEventListener('scroll', handleScroll, { passive: true })
-    handleScroll() // Run once on mount
+    handleScroll()
     return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
-
-  // Floating icons entry animation
-  useEffect(() => {
-    if (!floatingIconsRef.current) return
-    const icons = floatingIconsRef.current.querySelectorAll('.floating-icon')
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            icons.forEach((icon, i) => {
-              setTimeout(() => {
-                ;(icon as HTMLElement).style.opacity = '1'
-                ;(icon as HTMLElement).style.transform = 'scale(1)'
-              }, i * 80)
-            })
-            observer.disconnect()
-          }
-        })
-      },
-      { threshold: 0.3 }
-    )
-    observer.observe(floatingIconsRef.current)
-    return () => observer.disconnect()
   }, [])
 
   const filteredFeatures =
@@ -672,7 +716,7 @@ export default function LandingPage() {
         </Section>
 
         {/* ══ FEATURE TABS — Horizontal Screenshot Scroll ═══ */}
-        <Section id="features" className="px-6 py-24 md:px-12 lg:px-24 text-center">
+        <Section id="features" ref={featuresRef} className="px-6 py-24 md:px-12 lg:px-24 text-center">
           <div className="mx-auto max-w-[700px]">
             <h2 className="text-4xl md:text-5xl font-extrabold leading-[1.08] tracking-[-0.035em] text-[#0a0a0a]">
               From inspiration to creation
@@ -719,41 +763,13 @@ export default function LandingPage() {
         </Section>
 
         {/* ══ STATS — Scroll-Jacked Reveal + Floating Icons ═══ */}
-        <Section className="relative px-6 py-40 overflow-hidden text-center md:px-12 lg:px-24" ref={floatingIconsRef}>
-          <p className="text-sm font-medium text-gray-400 mb-12 relative z-10">A growing library of</p>
-
-          {/* Scroll-jacked stats stack */}
-          <div className="relative z-10 flex flex-col items-center gap-16">
-            <ScrollJackedStat value={<><AnimatedCounter end={2400} suffix="+" /> bots</>} label="live and running" index={0} />
-            <ScrollJackedStat value={<><AnimatedCounter end={1200000} suffix="+" /></>} label="messages handled" index={1} />
-            <ScrollJackedStat value={<><AnimatedCounter end={11400} suffix="+" /></>} label="businesses using Owivara" index={2} />
-          </div>
-
-          {/* Floating icons with physics — hidden on mobile */}
-          <div className="absolute inset-0 pointer-events-none hidden sm:block" ref={floatingIconsRef}>
-            {[
-              { color: '#22c55e', size: 'w-[72px] h-[72px]', x: 60, y: 80 },
-              { color: '#3b82f6', size: 'w-[56px] h-[56px]', x: 280, y: 140 },
-              { color: '#8b5cf6', size: 'w-[80px] h-[80px]', x: 520, y: 60 },
-              { color: '#f59e0b', size: 'w-[64px] h-[64px]', x: 120, y: 380 },
-              { color: '#ef4444', size: 'w-[88px] h-[88px]', x: 680, y: 280 },
-              { color: '#06b6d4', size: 'w-[60px] h-[60px]', x: 200, y: 500 },
-              { color: '#22c55e', size: 'w-[76px] h-[76px]', x: 580, y: 420 },
-              { color: '#3b82f6', size: 'w-[48px] h-[48px]', x: 420, y: 200 },
-            ].map((icon, i) => (
-              <FloatingIcon
-                key={i}
-                color={icon.color}
-                size={icon.size}
-                initialX={icon.x}
-                initialY={icon.y}
-              />
-            ))}
-          </div>
-        </Section>
+        {/* NOTE: NOT wrapped in <Section> — motion.section + overflow-hidden breaks position:sticky */}
+        <div id="stats" className="relative" style={{ overflow: 'visible' }}>
+          <ScrollJackedStats />
+        </div>
 
         {/* ══ PRICING ══════════════════════════════════════ */}
-        <Section id="pricing" className="px-6 py-24 md:px-12 lg:px-24">
+        <Section id="pricing" ref={pricingRef} className="px-6 py-24 md:px-12 lg:px-24">
           <div className="mx-auto max-w-[700px] text-center">
             <h2 className="text-4xl md:text-5xl font-extrabold leading-[1.08] tracking-[-0.035em] text-[#0a0a0a]">
               Pricing that makes sense in naira and in logic.
@@ -805,7 +821,7 @@ export default function LandingPage() {
         </Section>
 
         {/* ══ TESTIMONIALS ═════════════════════════════════ */}
-        <Section id="testimonials" className="bg-gray-50 px-6 py-24 md:px-12 lg:px-24">
+        <Section id="testimonials" ref={testimonialsRef} className="bg-gray-50 px-6 py-24 md:px-12 lg:px-24">
           <div className="mx-auto max-w-6xl text-center">
             <h2 className="text-4xl md:text-5xl font-extrabold leading-[1.08] tracking-[-0.035em] text-[#0a0a0a]">
               What teams said after their first month live.
@@ -896,7 +912,7 @@ export default function LandingPage() {
                 {/* Social Icons */}
                 <div className="flex gap-3">
                   {['X', 'In', 'Gh', 'Tw'].map((social) => (
-                    <a key={social} href="#" className="w-9 h-9 rounded-lg bg-white/5 flex items-center justify-center text-gray-500 hover:bg-white/10 hover:text-white transition-all duration-200 text-xs font-bold">
+                    <a key={social} href="#" onClick={(e) => e.preventDefault()} className="w-9 h-9 rounded-lg bg-white/5 flex items-center justify-center text-gray-500 hover:bg-white/10 hover:text-white transition-all duration-200 text-xs font-bold">
                       {social}
                     </a>
                   ))}
@@ -908,7 +924,7 @@ export default function LandingPage() {
                 <h4 className="text-[12px] font-bold tracking-wider uppercase text-gray-400 mb-5">Product</h4>
                 <ul className="flex flex-col gap-3">
                   {['Features', 'Pricing', 'Integrations', 'Changelog', 'Documentation'].map((link) => (
-                    <li key={link}><a href="#" className="text-[15px] font-medium text-gray-500 hover:text-white transition-colors duration-200">{link}</a></li>
+                    <li key={link}><a href="#" onClick={(e) => e.preventDefault()} className="text-[15px] font-medium text-gray-500 hover:text-white transition-colors duration-200">{link}</a></li>
                   ))}
                 </ul>
               </div>
@@ -918,7 +934,7 @@ export default function LandingPage() {
                 <h4 className="text-[12px] font-bold tracking-wider uppercase text-gray-400 mb-5">Company</h4>
                 <ul className="flex flex-col gap-3">
                   {['About', 'Blog', 'Careers', 'Contact', 'Legal'].map((link) => (
-                    <li key={link}><a href="#" className="text-[15px] font-medium text-gray-500 hover:text-white transition-colors duration-200">{link}</a></li>
+                    <li key={link}><a href="#" onClick={(e) => e.preventDefault()} className="text-[15px] font-medium text-gray-500 hover:text-white transition-colors duration-200">{link}</a></li>
                   ))}
                 </ul>
               </div>
@@ -928,9 +944,9 @@ export default function LandingPage() {
             <div className="mt-16 pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4">
               <p className="text-[13px] text-gray-600">© 2024–2026 Owivara. All rights reserved.</p>
               <div className="flex gap-6">
-                <a href="#" className="text-[13px] text-gray-600 hover:text-gray-400 transition-colors">Privacy Policy</a>
-                <a href="#" className="text-[13px] text-gray-600 hover:text-gray-400 transition-colors">Terms of Service</a>
-                <a href="#" className="text-[13px] text-gray-600 hover:text-gray-400 transition-colors">Cookies</a>
+                <a href="#" onClick={(e) => e.preventDefault()} className="text-[13px] text-gray-600 hover:text-gray-400 transition-colors">Privacy Policy</a>
+                <a href="#" onClick={(e) => e.preventDefault()} className="text-[13px] text-gray-600 hover:text-gray-400 transition-colors">Terms of Service</a>
+                <a href="#" onClick={(e) => e.preventDefault()} className="text-[13px] text-gray-600 hover:text-gray-400 transition-colors">Cookies</a>
               </div>
             </div>
           </div>

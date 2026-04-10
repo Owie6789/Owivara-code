@@ -52,6 +52,8 @@ export {
   getMessageStats,
   getPluginRegistry,
   getUserPlugins,
+  saveAIProviderConfig,
+  getAIProviderConfig,
 } from './database.js';
 
 // Realtime

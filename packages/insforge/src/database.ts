@@ -340,3 +340,55 @@ export async function getUserPlugins(
     return { data: null, error: normalizeError(err, 'Failed to fetch user plugins') };
   }
 }
+
+// ─── AI Provider Config ────────────────────────────────────────
+
+/**
+ * Save user's AI provider configuration.
+ * Upserts into ai_provider_configs table.
+ *
+ * @param userId - The authenticated user's ID
+ * @param provider - AI provider ('gemini' | 'openai')
+ * @param apiKey - Encrypted API key (stored as-is, encryption handled by edge function)
+ * @returns Success or error
+ */
+export async function saveAIProviderConfig(
+  userId: string,
+  provider: string,
+  apiKey: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { error } = await db
+      .from('ai_provider_configs')
+      .upsert(
+        { user_id: userId, provider, api_key: apiKey, updated_at: new Date().toISOString() },
+        { onConflict: 'user_id' }
+      );
+
+    if (error) return { success: false, error: error.message };
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Failed to save AI config' };
+  }
+}
+
+/**
+ * Get user's AI provider configuration.
+ *
+ * @param userId - The authenticated user's ID
+ * @returns Provider config or null
+ */
+export async function getAIProviderConfig(userId: string): Promise<{ provider: string; api_key: string } | null> {
+  try {
+    const { data, error } = await db
+      .from('ai_provider_configs')
+      .select('provider, api_key')
+      .eq('user_id', userId)
+      .single();
+
+    if (error || !data) return null;
+    return { provider: data.provider as string, api_key: data.api_key as string };
+  } catch {
+    return null;
+  }
+}

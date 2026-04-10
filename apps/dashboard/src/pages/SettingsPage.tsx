@@ -1,8 +1,8 @@
-import { useState, FormEvent } from 'react'
+import { useState, FormEvent, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { getCurrentUser } from '@owivara/insforge'
+import { getCurrentUser, saveAIProviderConfig, getAIProviderConfig } from '@owivara/insforge'
 import type { AIProvider } from '@owivara/types'
-import { Eye, EyeOff, Save } from 'lucide-react'
+import { Eye, EyeOff, Save, Check } from 'lucide-react'
 
 export default function SettingsPage() {
   const { data: user } = useQuery({ queryKey: ['user'], queryFn: getCurrentUser })
@@ -10,12 +10,43 @@ export default function SettingsPage() {
   const [apiKey, setApiKey] = useState('')
   const [showKey, setShowKey] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+
+  // Load saved AI config when user is available
+  useEffect(() => {
+    if (!user?.id) return
+    let mounted = true
+    getAIProviderConfig(user.id).then((config) => {
+      if (mounted && config) {
+        setAIProvider(config.provider as AIProvider)
+        // Don't show the API key for security — user must re-enter it
+      }
+    })
+    return () => { mounted = false }
+  }, [user?.id])
 
   const handleSave = async (e: FormEvent) => {
     e.preventDefault()
-    // TODO: Save to InsForge DB
-    setSaved(true)
-    setTimeout(() => setSaved(false), 3000)
+    if (!user?.id) return
+    if (!apiKey.trim()) {
+      setSaveError('API key is required')
+      return
+    }
+
+    setSaving(true)
+    setSaveError(null)
+
+    const result = await saveAIProviderConfig(user.id, aiProvider, apiKey.trim())
+    setSaving(false)
+
+    if (result.error) {
+      setSaveError(result.error)
+    } else {
+      setSaved(true)
+      setApiKey('') // Clear the key from memory after saving
+      setTimeout(() => setSaved(false), 3000)
+    }
   }
 
   return (
@@ -89,17 +120,26 @@ export default function SettingsPage() {
             </div>
           </div>
 
+          {/* Save error */}
+          {saveError && (
+            <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-400">
+              {saveError}
+            </div>
+          )}
+
+          {/* Save success */}
           {saved && (
-            <div className="rounded-lg bg-green-500/10 border border-green-500/20 p-3 text-sm text-green-400">
-              Settings saved successfully!
+            <div className="rounded-lg bg-green-500/10 border border-green-500/20 p-3 text-sm text-green-400 flex items-center gap-2">
+              <Check size={14} /> Settings saved successfully!
             </div>
           )}
 
           <button
             type="submit"
-            className="flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-500 transition-colors"
+            disabled={saving}
+            className="flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-500 transition-colors disabled:opacity-50"
           >
-            <Save size={16} /> Save Settings
+            <Save size={16} /> {saving ? 'Saving...' : 'Save Settings'}
           </button>
         </form>
       </div>
