@@ -1,0 +1,21 @@
+{
+  "name": "@owivara/baileys-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "baileys": "^7.0.0-rc.9",
+    "pino": "^10.3.1",
+    "qrcode-terminal": "^0.12.0"
+  },
+  "devDependencies": {
+    "@owivara/types": "workspace:*",
+    "@types/node": "^24.12.0",
+    "typescript": "~5.9.3"
+  }
+}

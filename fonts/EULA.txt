@@ -1,0 +1,60 @@
+END USER LICENSE AGREEMENT (EULA)
+Displaay.net Font License
+
+EFFECTIVE DATE: 2026
+
+1. DEFINITIONS
+   "Font Software" refers to the digital font files included in this package.
+   "User" refers to the individual or organization that has purchased this license.
+   "Licensed Use" refers to the permitted uses outlined in Section 3.
+
+2. GRANT OF LICENSE
+   Displaay.net grants User a non-exclusive, non-transferable license to use 
+   the Sans font family subject to the terms and conditions of this agreement.
+
+3. PERMITTED USES
+   3.1 Desktop Use: Install on up to 5 computers for personal or commercial use
+   3.2 Print: Use in printed materials, publications, and marketing collateral
+   3.3 Digital: Use in digital designs, presentations, and web graphics
+   3.4 PDF Embedding: Embed the font in PDF documents for distribution
+   3.5 Commercial Use: Use in commercial projects and client work
+
+4. PROHIBITED USES
+   4.1 Modification: User may not modify, adapt, or create derivative works
+   4.2 Distribution: User may not share, transfer, or distribute font files
+   4.3 Sublicensing: User may not sublicense, resell, or rent the font
+   4.4 Web Deployment: Web embedding requires a separate Web License
+   4.5 App Development: Mobile or desktop app use requires an App License
+   4.6 Reverse Engineering: User may not reverse engineer or decompile the font
+   4.7 Server Use: Font files may not be installed on servers or networks
+
+5. ADDITIONAL LICENSES
+   For web embedding, app development, or server deployment, User must 
+   purchase additional licenses from Displaay.net.
+
+6. TERM AND TERMINATION
+   This license is perpetual for the User's personal use. Displaay.net may 
+   terminate this license if User violates any terms of this agreement. 
+   Upon termination, User must cease use and delete all font files.
+
+7. INTELLECTUAL PROPERTY
+   All rights, title, and interest in the Font Software remain the exclusive 
+   property of Displaay.net. User acquires no ownership rights.
+
+8. WARRANTY DISCLAIMER
+   THE FONT SOFTWARE IS PROVIDED "AS-IS" WITHOUT WARRANTY OF ANY KIND, 
+   EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF 
+   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
+
+9. LIMITATION OF LIABILITY
+   IN NO EVENT SHALL DISPLAAY.NET BE LIABLE FOR ANY INDIRECT, INCIDENTAL, 
+   SPECIAL, OR CONSEQUENTIAL DAMAGES ARISING FROM THE USE OF THIS FONT.
+
+10. GOVERNING LAW
+    This agreement is governed by applicable international copyright law.
+
+11. CONTACT
+    For licensing questions or inquiries: support@displaay.net
+    Website: www.displaay.net
+
+© 2026 Displaay.net. All rights reserved.

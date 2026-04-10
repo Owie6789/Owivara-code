@@ -1,0 +1,28 @@
+{
+  "name": "owivara",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Owivara — WhatsApp Bot Orchestration Control Panel",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:dashboard\" \"npm run dev:bot\"",
+    "dev:dashboard": "npm run dev --workspace=apps/dashboard",
+    "dev:bot": "npm run dev --workspace=apps/bot",
+    "build": "npm run build --workspace=apps/dashboard && npm run build --workspace=apps/bot",
+    "build:dashboard": "npm run build --workspace=apps/dashboard",
+    "build:bot": "npm run build --workspace=apps/bot",
+    "lint": "npm run lint --workspaces --if-present",
+    "type-check": "npm run type-check --workspaces --if-present",
+    "clean": "rimraf apps/*/dist packages/*/dist node_modules"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "rimraf": "^6.0.1"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

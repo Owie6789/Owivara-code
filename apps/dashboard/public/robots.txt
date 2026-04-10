@@ -1,0 +1,17 @@
+# Owivara Robots.txt
+# https://owivara.pxxl.click/robots.txt
+
+# Allow all crawlers for public pages
+User-agent: *
+Allow: /
+Allow: /login
+Allow: /signup
+
+# Disallow all crawlers from private dashboard pages
+Disallow: /dashboard
+Disallow: /dashboard/*
+Disallow: /dashboard/bots
+Disallow: /dashboard/settings
+
+# Sitemap location
+Sitemap: https://owivara.pxxl.click/sitemap.xml

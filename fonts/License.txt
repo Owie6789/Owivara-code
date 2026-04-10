@@ -1,0 +1,37 @@
+DISPLAAY.NET FONT LICENSE
+Font: Sans
+Version: 1.0
+Release Date: 2026
+
+GRANT OF LICENSE
+You have purchased a license to use the Sans font family from Displaay.net. 
+This license grants you the right to:
+
+✓ Install the font on up to 5 computers
+✓ Use in personal and commercial design projects
+✓ Embed in PDF documents
+✓ Use in print materials, web design, and digital media
+✓ Use in presentations and marketing materials
+
+RESTRICTIONS
+You may NOT:
+
+✗ Modify, alter, or create derivative versions of the font
+✗ Redistribute, share, or transfer the font files to others
+✗ Sublicense or resell the font
+✗ Use the font in web applications or SaaS platforms without a Web License
+✗ Use the font in mobile apps without an App License
+✗ Reverse engineer or attempt to extract font data
+
+TERMS
+This license is non-exclusive and non-transferable. Displaay.net retains 
+all ownership rights to the font software and design.
+
+DISCLAIMER
+The font is provided "as-is" without warranty. Displaay.net is not liable 
+for any damages resulting from the use of this font.
+
+For questions or licensing inquiries, visit www.displaay.net or contact 
+support@displaay.net
+
+© 2026 Displaay.net. All rights reserved.

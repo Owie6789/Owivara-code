@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "composite": true,
+    "types": ["vite/client"]
+  },
+  "include": ["src/**/*.ts"],
+  "references": [{ "path": "../types" }]
+}
