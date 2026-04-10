@@ -1,8 +1,11 @@
 /// <reference types="vite/client" />
 import { useState, useEffect, useCallback } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
 import { getCurrentUser, getCurrentUserEmail, signOut, verifyEmail, resendVerificationEmail } from '@owivara/insforge'
 import SEOHead from '../components/SEOHead'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog'
+import { AnimatedOTPInput } from '../components/ui/otp-input'
 
 export default function VerifyPage() {
   const [searchParams] = useSearchParams()
@@ -45,7 +48,7 @@ export default function VerifyPage() {
     })
   }, [urlEmail])
 
-  // Auto-redirect if already verified (checks periodically)
+  // Auto-redirect if already verified AND has an active session
   useEffect(() => {
     if (!email) return
     let mounted = true
@@ -56,22 +59,16 @@ export default function VerifyPage() {
           window.location.href = '/dashboard'
         }
       } catch {
-        // getCurrentUser may call refreshSession internally which can 401 — ignore
+        // No active session — ignore
       }
     }
-    // Check immediately
     checkVerified()
-    // Then check every 5 seconds (in case verification happened elsewhere)
     const interval = setInterval(checkVerified, 5000)
     return () => { mounted = false; clearInterval(interval) }
   }, [navigate, email])
 
-  // NO auto-resend on mount — the code was already sent during signup.
-  // User must click "Resend" manually to avoid 429 rate limit errors.
-
   const handleResend = useCallback(async () => {
     if (!email) return
-    // Rate limit: max 3 attempts before 5-minute cooldown
     if (resendAttempts >= 3) {
       setError('Too many resend attempts. Please wait 5 minutes or contact support.')
       setCountdown(300)
@@ -84,7 +81,6 @@ export default function VerifyPage() {
 
     try {
       const result = await resendVerificationEmail(email)
-
       if (!result.success) {
         setError(result.error || 'Failed to resend verification code.')
         setCountdown(0)
@@ -99,14 +95,12 @@ export default function VerifyPage() {
     }
   }, [email, resendAttempts])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleOTPComplete = async (otp: string) => {
+    setCode(otp)
+    if (otp.length < 6) return
+
     if (!email) {
       setError('No email address found.')
-      return
-    }
-    if (!code || code.length < 6) {
-      setError('Please enter the 6-digit verification code.')
       return
     }
 
@@ -115,15 +109,15 @@ export default function VerifyPage() {
     setLoading(true)
 
     try {
-      const result = await verifyEmail(email, code)
-
+      const result = await verifyEmail(email, otp)
       if (!result.success) {
         setError(result.error || 'Invalid or expired verification code.')
       } else {
         setSuccess('Email verified successfully!')
-        // Hard redirect to force full page reload and reset session state
         setTimeout(() => {
-          window.location.href = '/dashboard'
+          navigate('/login', {
+            state: { message: 'Email verified successfully! Please sign in.' }
+          })
         }, 1000)
       }
     } catch {
@@ -135,7 +129,7 @@ export default function VerifyPage() {
 
   if (!email) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0B0C10] px-4">
+      <div className="flex min-h-screen items-center justify-center bg-[#0a0a0a] px-4">
         <div className="text-center text-gray-400">
           <p className="text-lg">No email provided.</p>
           <Link to="/signup" className="mt-4 inline-block text-green-400 hover:text-green-300">Go back to signup</Link>
@@ -147,87 +141,109 @@ export default function VerifyPage() {
   return (
     <>
       <SEOHead title="Verify Email — Owivara" description="Enter the 6-digit verification code sent to your email." path="/verify" noindex={true} />
-      <div className="flex min-h-screen items-center justify-center bg-[#0B0C10] px-4">
-        {/* Top action link */}
-        <div className="absolute top-6 left-6 flex items-center gap-4">
-          {isAuthenticated ? (
-            <button onClick={async () => { await signOut(); navigate('/login') }} className="text-sm text-gray-400 hover:text-white">
-              Sign out
-            </button>
-          ) : (
-            <Link to="/signup" className="flex items-center text-sm text-gray-400 hover:text-white">
-              <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M19 12H5M12 19l-7-7 7-7" />
-              </svg>
-              Back
-            </Link>
-          )}
+      <div className="flex min-h-screen items-center justify-center bg-[#0a0a0a] p-4">
+
+        {/* Back button */}
+        <Link
+          to={isAuthenticated ? "/dashboard" : "/signup"}
+          className="fixed left-4 top-4 z-50 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-gray-500 transition-colors hover:bg-white/5 hover:text-gray-300"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 12H4M4 12L10 6M4 12L10 18" />
+          </svg>
+          Back
+        </Link>
+
+        {/* Owivara logo */}
+        <div className="fixed left-4 top-12 z-50 flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-green-500/20 border border-green-500/30">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2V6M8 6H16C17.1046 6 18 6.89543 18 8V16C18 17.1046 17.1046 18 16 18H8C6.89543 18 6 17.1046 6 16V8C6 6.89543 6.89543 6 8 6ZM9.5 12H9.51M14.5 12H14.51M5 10H3C2.44772 10 2 10.4477 2 11V15C2 15.5523 2.44772 16 3 16H5M19 10H21C21.5523 10 22 10.4477 22 11V15C22 15.5523 21.5523 16 21 16H19" />
+            </svg>
+          </div>
+          <span className="text-sm font-semibold text-gray-400">Owivara</span>
         </div>
 
-        <div className="w-full max-w-sm">
-          {/* Mobile header */}
-          <div className="mb-8 text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-green-500/20 border border-green-500/30">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 2V6M8 6H16C17.1046 6 18 6.89543 18 8V16C18 17.1046 17.1046 18 16 18H8C6.89543 18 6 17.1046 6 16V8C6 6.89543 6.89543 6 8 6ZM9.5 12H9.51M14.5 12H14.51M5 10H3C2.44772 10 2 10.4477 2 11V15C2 15.5523 2.44772 16 3 16H5M19 10H21C21.5523 10 22 10.4477 22 11V15C22 15.5523 21.5523 16 21 16H19" />
-              </svg>
+        {/* Verify Dialog */}
+        <Dialog open={true} onOpenChange={() => navigate(isAuthenticated ? "/dashboard" : "/signup")}>
+          <DialogContent className="border-white/10 bg-[#0d0d0d] text-white shadow-2xl shadow-black/50 sm:max-w-[420px]">
+            {/* Header */}
+            <div className="flex flex-col items-center gap-3 pb-2">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/10">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
+                  <polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
+              </div>
+              <DialogHeader className="text-center">
+                <DialogTitle className="text-xl font-semibold tracking-tight">Verify your email</DialogTitle>
+                <DialogDescription className="text-sm text-gray-500">
+                  We sent a 6-digit code to
+                </DialogDescription>
+                <p className="mt-1 text-sm font-medium text-green-400">{email}</p>
+              </DialogHeader>
             </div>
-            <h2 className="text-xl font-bold text-white">Owivara</h2>
-          </div>
 
-          {/* Verification form card */}
-          <div className="rounded-2xl border border-white/10 bg-[#0D0E12] p-6 md:p-8">
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold text-white">Verify your email</h2>
-              <p className="mt-2 text-sm text-gray-500">We sent a 6-digit code to</p>
-              <p className="mt-1 text-sm font-medium text-green-400">{email}</p>
-            </div>
+            {/* Error message */}
+            <AnimatePresence>
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-sm text-red-400 text-center">
+                    {error}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label htmlFor="code" className="mb-1.5 block text-xs font-medium text-gray-400">
-                  Verification code
-                </label>
-                <input
-                  id="code"
-                  type="text"
+            {/* Success message */}
+            <AnimatePresence>
+              {success && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="rounded-lg border border-green-500/20 bg-green-500/10 px-4 py-2.5 text-sm text-green-400 text-center">
+                    {success}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* OTP Input */}
+            <div className="py-4">
+              <div className="flex justify-center">
+                <AnimatedOTPInput
                   value={code}
-                  onChange={(e) => setCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
-                  required
+                  onChange={setCode}
+                  onComplete={handleOTPComplete}
                   maxLength={6}
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  placeholder="000000"
-                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-gray-600 outline-none transition-colors focus:border-green-500/50 focus:ring-1 focus:ring-green-500/30 text-center tracking-widest text-lg"
-                  autoComplete="one-time-code"
                 />
               </div>
+            </div>
 
-              {/* Success message */}
-              {success && (
-                <div className="rounded-xl border border-green-500/20 bg-green-500/10 px-4 py-3 text-sm text-green-400 text-center">
-                  {success}
-                </div>
+            {/* Loading state */}
+            <AnimatePresence>
+              {loading && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="text-center text-sm text-gray-500"
+                >
+                  Verifying code...
+                </motion.div>
               )}
-
-              {/* Error message */}
-              {error && (
-                <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400 text-center">
-                  {error}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full rounded-xl bg-green-500 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-green-400 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? 'Verifying...' : 'Verify Email'}
-              </button>
-            </form>
+            </AnimatePresence>
 
             {/* Resend code */}
-            <div className="mt-6 text-center">
+            <div className="text-center">
               <p className="text-sm text-gray-500">
                 Didn't receive the code?{' '}
                 {countdown > 0 ? (
@@ -246,8 +262,20 @@ export default function VerifyPage() {
                 <p className="mt-2 text-xs text-gray-600">{resendAttempts}/3 resend attempts used</p>
               )}
             </div>
-          </div>
-        </div>
+
+            {/* Sign out if authenticated */}
+            {isAuthenticated && (
+              <div className="text-center pt-2">
+                <button
+                  onClick={async () => { await signOut(); navigate('/login') }}
+                  className="text-sm text-gray-500 hover:text-gray-300"
+                >
+                  Sign out
+                </button>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </>
   )

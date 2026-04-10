@@ -26,6 +26,7 @@
     "useUnknownInCatchVariables": true,
     "alwaysStrict": true,
     "paths": {
+      "@/*": ["./apps/dashboard/src/*"],
       "@owivara/types": ["./packages/types/src"],
       "@owivara/insforge": ["./packages/insforge/src"],
       "@owivara/baileys-core": ["./packages/baileys-core/src"],

@@ -74,3 +74,6 @@ import './plugins/youtube.js';
 import './plugins/social.js';
 import './plugins/autodl.js';
 import './plugins/chatbot.js';
+import './plugins/admin.js';
+import './plugins/warn.js';
+import './plugins/commands.js';
