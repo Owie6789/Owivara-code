@@ -315,7 +315,8 @@ export async function resendVerificationEmail(email: string): Promise<{ success:
  */
 export async function sendPasswordReset(email: string, redirectTo?: string): Promise<{ success: boolean; error?: string }> {
   try {
-    const { error } = await auth.sendResetPasswordEmail(email, {
+    const { error } = await auth.sendResetPasswordEmail({
+      email,
       redirectTo: redirectTo || `${window.location.origin}/reset-password`,
     });
     if (error) {
