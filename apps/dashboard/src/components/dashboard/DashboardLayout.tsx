@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
-import { signOut } from '@owivara/insforge'
+import { signOut, syncAuthAcrossTabs } from '@owivara/insforge'
 import { cn } from '../../lib/utils'
 import { LayoutDashboard, Bot, Settings, LogOut, Menu, X, ChevronLeft } from 'lucide-react'
 
@@ -23,6 +23,13 @@ export default function DashboardLayout() {
   useEffect(() => {
     setMobileOpen(false)
   }, [location.pathname])
+
+  // Sync auth state across tabs — if another tab logs out, this tab logs out too
+  useEffect(() => {
+    return syncAuthAcrossTabs(() => {
+      navigate('/login')
+    })
+  }, [navigate])
 
   const handleSignOut = async () => {
     await signOut()
@@ -59,14 +66,12 @@ export default function DashboardLayout() {
           'w-60'
         )}
       >
-        {/* Logo / Header */}
-        <div className="flex h-14 shrink-0 items-center justify-between border-b border-white/5 px-4">
+        {/* Logo / Header — rounded top edges for soft appearance */}
+        <div className="flex h-14 shrink-0 items-center justify-between border-b border-white/5 px-4 rounded-t-xl">
           {sidebarOpen && (
             <Link to="/dashboard" className="flex items-center gap-2 overflow-hidden">
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-green-500/20 border border-green-500/30">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 2V6M8 6H16C17.1046 6 18 6.89543 18 8V16C18 17.1046 17.1046 18 16 18H8C6.89543 18 6 17.1046 6 16V8C6 6.89543 6.89543 6 8 6ZM9.5 12H9.51M14.5 12H14.51M5 10H3C2.44772 10 2 10.4477 2 11V15C2 15.5523 2.44772 16 3 16H5M19 10H21C21.5523 10 22 10.4477 22 11V15C22 15.5523 21.5523 16 21 16H19" />
-                </svg>
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg overflow-hidden">
+                <img src="/logo.svg" alt="Owivara" className="w-full h-full object-cover" />
               </div>
               <span className="text-sm font-bold text-white">Owivara</span>
             </Link>

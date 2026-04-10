@@ -382,3 +382,35 @@ export async function signInWithOAuth(
     };
   }
 }
+
+/**
+ * Sync auth state across browser tabs by listening to storage events.
+ * When another tab clears the auth token (logout), this tab will also log out.
+ *
+ * @param onLogout - Callback to run when session is cleared from another tab
+ * @returns Cleanup function to remove the event listener
+ *
+ * @example
+ * ```tsx
+ * useEffect(() => {
+ *   return syncAuthAcrossTabs(() => {
+ *     navigate('/login')
+ *     queryClient.invalidateQueries()
+ *   })
+ * }, [])
+ * ```
+ */
+export function syncAuthAcrossTabs(onLogout: () => void): () => void {
+  const handleStorage = (e: StorageEvent) => {
+    // InsForge SDK stores tokens in localStorage with keys containing 'auth' or 'token'
+    // When logout runs in another tab, it clears these keys
+    if (e.key?.includes('auth') || e.key?.includes('token')) {
+      if (!e.newValue) {
+        // Key was removed — another tab logged out
+        onLogout()
+      }
+    }
+  }
+  window.addEventListener('storage', handleStorage)
+  return () => window.removeEventListener('storage', handleStorage)
+}

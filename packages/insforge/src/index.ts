@@ -36,6 +36,7 @@ export {
   resendVerificationEmail,
   sendPasswordReset,
   signUpWithMagicLink,
+  syncAuthAcrossTabs,
 } from './auth.js';
 
 // Database
