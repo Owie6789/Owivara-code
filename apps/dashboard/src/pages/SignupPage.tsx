@@ -1,4 +1,4 @@
-import { useState, FormEvent } from 'react'
+import { useState, FormEvent, ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { signUp, signInWithOAuth, callInitProfile } from '@owivara/insforge'
 import SEOHead from '../components/SEOHead'
@@ -7,7 +7,7 @@ export default function SignupPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [displayName, setDisplayName] = useState('')
-  const [error, setError] = useState('')
+  const [error, setError] = useState<ReactNode>('')
   const [loading, setLoading] = useState(false)
   const [oauthLoading, setOauthLoading] = useState(false)
   const navigate = useNavigate()
@@ -24,10 +24,16 @@ export default function SignupPage() {
 
     if (result.error) {
       const msg = result.error.message.toLowerCase()
-      // If user already exists, check if they're unverified and redirect to verify
+      // If user already exists, show helpful message with action links
       if (msg.includes('already') || msg.includes('exists') || msg.includes('registered') || msg.includes('taken')) {
-        // User exists — redirect to verify page to resend code
-        navigate(`/verify?email=${encodeURIComponent(email)}`)
+        setError(
+          <span>
+            This email is already registered.{' '}
+            <Link to="/login" className="underline text-green-400 hover:text-green-300">Log in</Link>
+            {' '}or{' '}
+            <Link to="/reset-password" className="underline text-green-400 hover:text-green-300">reset your password</Link>.
+          </span>
+        )
       } else {
         setError(result.error.message)
       }
@@ -86,7 +92,7 @@ export default function SignupPage() {
           <button
             onClick={handleGoogleSignup}
             disabled={oauthLoading}
-            className="w-full flex items-center justify-center gap-3 rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-white hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors mb-6"
+            className="w-full flex items-center justify-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-white hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors mb-6"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
@@ -117,7 +123,7 @@ export default function SignupPage() {
                 type="text"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white placeholder-gray-500 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-white placeholder-gray-500 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
                 placeholder="Your Name"
               />
             </div>
@@ -132,7 +138,7 @@ export default function SignupPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white placeholder-gray-500 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-white placeholder-gray-500 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
                 placeholder="you@example.com"
               />
             </div>
@@ -148,21 +154,21 @@ export default function SignupPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={8}
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-white placeholder-gray-500 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-white placeholder-gray-500 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
                 placeholder="••••••••"
               />
             </div>
 
             {error && (
-              <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-400">
-                {error}
+              <div className="rounded-xl bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-400">
+                {typeof error === 'string' ? <span className="text-center">{error}</span> : error}
               </div>
             )}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="w-full rounded-xl bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {loading ? 'Creating account...' : 'Sign Up'}
             </button>
@@ -170,7 +176,7 @@ export default function SignupPage() {
 
           <p className="mt-6 text-center text-sm text-gray-400">
             Already have an account?{' '}
-            <Link to="/login" className="text-brand-400 hover:text-brand-300">
+            <Link to="/login" className="text-green-400 hover:text-green-300">
               Sign in
             </Link>
           </p>
