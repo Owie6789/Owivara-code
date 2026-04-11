@@ -287,13 +287,16 @@ export default function VerifyPage() {
           </AnimatePresence>
 
           {/* OTP Input — centered module */}
-          <div className="py-6 flex flex-col items-center justify-center">
-            <AnimatedOTPInput
-              value={code}
-              onChange={setCode}
-              onComplete={handleOTPComplete}
-              maxLength={6}
-            />
+          <div className="py-6 w-full flex justify-center">
+            <div className="flex justify-center w-fit">
+              <AnimatedOTPInput
+                value={code}
+                onChange={setCode}
+                onComplete={handleOTPComplete}
+                maxLength={6}
+                containerClassName="justify-center"
+              />
+            </div>
           </div>
 
           {/* Loading state */}
