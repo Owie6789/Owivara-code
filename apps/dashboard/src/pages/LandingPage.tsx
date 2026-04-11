@@ -674,7 +674,7 @@ export default function LandingPage() {
       <nav className="fixed top-0 left-0 right-0 z-[9999] flex justify-center" style={{ paddingTop: '14px', paddingLeft: '1rem', paddingRight: '1rem' }}>
           {/* The actual pill — self-contained interactive element */}
           <motion.div
-            className="relative flex items-center rounded-full"
+            className="relative flex items-center rounded-full pointer-events-auto"
             animate={{
               maxWidth: scrolled ? 620 : 540,
             }}
@@ -689,7 +689,7 @@ export default function LandingPage() {
           >
             <div className="flex items-center w-full" style={{ minHeight: '60px', paddingLeft: '32px', paddingRight: '32px' }}>
               {/* Logo — aligned baseline with nav items */}
-              <Link to="/" className="flex items-center gap-2.5 shrink-0 mr-6 group" aria-label="Owivara home">
+              <Link to="/" className="flex items-center gap-2.5 shrink-0 mr-6 group pointer-events-auto" aria-label="Owivara home">
                 <div className="w-8 h-8 rounded-lg overflow-hidden transition-transform duration-200 group-hover:scale-105 group-active:scale-95">
                   <img src="/logo.svg" alt="Owivara" className="w-full h-full object-cover" />
                 </div>
@@ -697,7 +697,7 @@ export default function LandingPage() {
               </Link>
 
               {/* Nav Links — same baseline as logo text */}
-              <div className="hidden md:flex items-center gap-8 shrink-0">
+              <div className="hidden md:flex items-center gap-8 shrink-0 pointer-events-auto">
                 <button
                   type="button"
                   onClick={() => scrollToSection('features')}
@@ -715,8 +715,8 @@ export default function LandingPage() {
               </div>
 
               {/* Right Actions — same baseline */}
-              <div className="hidden md:flex items-center gap-4 shrink-0 ml-auto">
-                <Link to="/login" className="text-[15px] font-semibold text-gray-600 hover:text-[#0a0a0a] transition-colors whitespace-nowrap" style={{ textDecoration: 'none' }}>
+              <div className="hidden md:flex items-center gap-4 shrink-0 ml-auto pointer-events-auto">
+                <Link to="/login" className="text-[15px] font-semibold text-gray-600 hover:text-[#0a0a0a] transition-colors whitespace-nowrap pointer-events-auto" style={{ textDecoration: 'none' }}>
                   Log in
                 </Link>
 
@@ -727,12 +727,12 @@ export default function LandingPage() {
                     opacity: scrolled ? 1 : 0,
                   }}
                   transition={{ type: 'spring', stiffness: 400, damping: 28 }}
-                  className="overflow-hidden"
+                  className="overflow-hidden pointer-events-auto"
                   style={{ minWidth: 0 }}
                 >
                   <Link
                     to="/signup"
-                    className="inline-flex items-center justify-center rounded-full bg-[#0a0a0a] text-[15px] font-semibold text-white whitespace-nowrap leading-none hover:bg-[#1a1a1a] active:scale-95 transition-all duration-150"
+                    className="inline-flex items-center justify-center rounded-full bg-[#0a0a0a] text-[15px] font-semibold text-white whitespace-nowrap leading-none hover:bg-[#1a1a1a] active:scale-95 transition-all duration-150 pointer-events-auto"
                     style={{ padding: '12px 28px', letterSpacing: '-0.01em' }}
                   >
                     Join for free
@@ -742,7 +742,7 @@ export default function LandingPage() {
 
               {/* Hamburger (mobile only) */}
               <button
-                className="flex items-center justify-center rounded-lg p-2 text-gray-500 hover:bg-gray-100/50 hover:text-gray-700 active:scale-95 md:hidden transition-all duration-150 ml-2"
+                className="flex items-center justify-center rounded-lg p-2 text-gray-500 hover:bg-gray-100/50 hover:text-gray-700 active:scale-95 md:hidden transition-all duration-150 ml-2 pointer-events-auto"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 aria-label="Toggle menu"
               >
