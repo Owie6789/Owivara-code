@@ -137,12 +137,76 @@ export default function VerifyPage() {
 
   if (!email) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0a0a0a] px-4">
-        <div className="text-center text-gray-400">
-          <p className="text-lg">No email provided.</p>
-          <Link to="/signup" className="mt-4 inline-block text-green-400 hover:text-green-300">Go back to signup</Link>
+      <>
+        <SEOHead title="Verification Error — Owivara" description="No email address was provided for verification." path="/verify" noindex={true} />
+        <div className="flex min-h-screen items-center justify-center bg-[#0a0a0a] px-4">
+
+          {/* Breadcrumb */}
+          <div className="fixed left-5 top-5 z-50">
+            <Breadcrumb>
+              <BreadcrumbList>
+                <BreadcrumbItem>
+                  <BreadcrumbLink href="/">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbPage>Verify</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+          </div>
+
+          {/* Error Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            className="w-full max-w-[360px] rounded-2xl border border-white/10 bg-[#0d0d0d] p-6 shadow-2xl shadow-black/50 text-center"
+          >
+            {/* Error Icon */}
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-white/10">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 8v4" />
+                <path d="M12 16h.01" />
+              </svg>
+            </div>
+
+            <h2 className="text-lg font-semibold text-white tracking-tight" style={{ fontFamily: 'Saans, sans-serif' }}>No email provided</h2>
+            <p className="mt-2 text-sm text-gray-500" style={{ fontFamily: 'Saans, sans-serif' }}>
+              We couldn't find an email address to verify. This link may have expired or was accessed incorrectly.
+            </p>
+
+            <div className="mt-6 flex flex-col gap-3">
+              <Link
+                to="/signup"
+                className="inline-flex items-center justify-center rounded-lg bg-green-500 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-green-400"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <line x1="19" y1="8" x2="19" y2="14" />
+                  <line x1="22" y1="11" x2="16" y2="11" />
+                </svg>
+                Go to Sign Up
+              </Link>
+              <Link
+                to="/login"
+                className="inline-flex items-center justify-center rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-gray-400 transition-colors hover:bg-white/10 hover:text-white"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                  <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                  <polyline points="10 17 15 12 10 7" />
+                  <line x1="15" y1="12" x2="3" y2="12" />
+                </svg>
+                Go to Login
+              </Link>
+            </div>
+          </motion.div>
         </div>
-      </div>
+      </>
     )
   }
 
