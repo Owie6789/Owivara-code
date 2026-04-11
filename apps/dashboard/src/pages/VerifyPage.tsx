@@ -213,7 +213,7 @@ export default function VerifyPage() {
   return (
     <>
       <SEOHead title="Verify Email — Owivara" description="Enter the 6-digit verification code sent to your email." path="/verify" noindex={true} />
-      <div className="flex min-h-screen items-start justify-center bg-[#0a0a0a] px-4 pt-12">
+      <div className="flex min-h-screen items-center justify-center bg-[#0a0a0a] px-4">
 
         {/* Breadcrumb — top left of page */}
         <div className="fixed left-5 top-5 z-50">
