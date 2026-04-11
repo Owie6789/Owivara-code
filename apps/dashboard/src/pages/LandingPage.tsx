@@ -631,22 +631,8 @@ export default function LandingPage() {
   const [tab, setTab] = useState(0)
   const [scrolled, setScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [footerInView, setFooterInView] = useState(false)
-  const footerRef = useRef<HTMLElement>(null)
   const tabs = ['All', 'Setup', 'AI', 'Monitoring', 'Commands', 'Media']
   const featuresRef = useRef<HTMLElement>(null)
-
-  // Track footer visibility to toggle gradual blur
-  useEffect(() => {
-    const footer = footerRef.current
-    if (!footer) return
-    const observer = new IntersectionObserver(
-      ([entry]) => setFooterInView(entry.isIntersecting),
-      { threshold: 0.05, rootMargin: '0px 0px -80px 0px' }
-    )
-    observer.observe(footer)
-    return () => observer.disconnect()
-  }, [])
 
   // Centralized scroll helper — accounts for sticky nav offset
   const scrollToSection = useCallback((sectionId: string) => {
@@ -684,11 +670,11 @@ export default function LandingPage() {
         path="/"
       />
 
-      {/* ══ NAV — Mobbin-inspired (moved outside wrapper for proper z-index stacking) ═══ */}
-      <nav className="fixed top-0 left-0 right-0 z-[9999] flex justify-center pointer-events-none" style={{ paddingTop: '14px', paddingLeft: '1rem', paddingRight: '1rem' }}>
-          {/* The actual pill */}
+      {/* ══ NAV — Fixed standalone element with proper pointer events ═══ */}
+      <nav className="fixed top-0 left-0 right-0 z-[9999] flex justify-center" style={{ paddingTop: '14px', paddingLeft: '1rem', paddingRight: '1rem' }}>
+          {/* The actual pill — self-contained interactive element */}
           <motion.div
-            className="pointer-events-all relative flex items-center rounded-full overflow-hidden"
+            className="relative flex items-center rounded-full"
             animate={{
               maxWidth: scrolled ? 620 : 540,
             }}
@@ -701,16 +687,16 @@ export default function LandingPage() {
               boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 16px rgba(0, 0, 0, 0.06)',
             }}
           >
-            <div className="flex items-center w-full rounded-full" style={{ minHeight: '60px', paddingLeft: '48px', paddingRight: '48px' }}>
-              {/* Logo — bigger text like Mobbin */}
-              <Link to="/" className="flex items-center gap-3 shrink-0 mr-8 group" aria-label="Owivara home">
-                <div className="w-10 h-10 rounded-lg overflow-hidden transition-transform duration-200 group-hover:scale-105 group-active:scale-95">
+            <div className="flex items-center w-full" style={{ minHeight: '60px', paddingLeft: '32px', paddingRight: '32px' }}>
+              {/* Logo — aligned baseline with nav items */}
+              <Link to="/" className="flex items-center gap-2.5 shrink-0 mr-6 group" aria-label="Owivara home">
+                <div className="w-8 h-8 rounded-lg overflow-hidden transition-transform duration-200 group-hover:scale-105 group-active:scale-95">
                   <img src="/logo.svg" alt="Owivara" className="w-full h-full object-cover" />
                 </div>
-                <span className="text-[20px] font-bold tracking-[-0.02em] text-[#0a0a0a] leading-none whitespace-nowrap">Owivara</span>
+                <span className="text-[18px] font-bold tracking-[-0.02em] text-[#0a0a0a] leading-none whitespace-nowrap">Owivara</span>
               </Link>
 
-              {/* Nav Links — plain text, no indicator pill */}
+              {/* Nav Links — same baseline as logo text */}
               <div className="hidden md:flex items-center gap-8 shrink-0">
                 <button
                   type="button"
@@ -728,8 +714,8 @@ export default function LandingPage() {
                 </button>
               </div>
 
-              {/* Right Actions */}
-              <div className="hidden md:flex items-center gap-4 shrink-0 ml-8">
+              {/* Right Actions — same baseline */}
+              <div className="hidden md:flex items-center gap-4 shrink-0 ml-auto">
                 <Link to="/login" className="text-[15px] font-semibold text-gray-600 hover:text-[#0a0a0a] transition-colors whitespace-nowrap" style={{ textDecoration: 'none' }}>
                   Log in
                 </Link>
@@ -1156,10 +1142,10 @@ export default function LandingPage() {
 
         </div> {/* End main content wrapper */}
 
-        {/* Fixed bottom gradual blur — visible while scrolling, hides when footer enters viewport */}
+        {/* Fixed bottom gradual blur */}
         <div
-          className="fixed bottom-0 left-0 right-0 z-[100] pointer-events-none transition-opacity duration-500"
-          style={{ opacity: footerInView ? 0 : 1 }}
+          className="fixed bottom-0 left-0 right-0 z-[100] pointer-events-none"
+          style={{ opacity: 1 }}
         >
           <GradualBlur
             position="top"
@@ -1173,7 +1159,7 @@ export default function LandingPage() {
         </div>
 
         {/* ══ FOOTER — Separated with Top Border ═════════════ */}
-        <footer ref={footerRef} className="bg-[#0a0a0a] px-6 pt-16 pb-10 md:px-12 lg:px-24 border-t border-white/10">
+        <footer className="bg-[#0a0a0a] px-6 pt-16 pb-10 md:px-12 lg:px-24 border-t border-white/10">
           <div className="mx-auto max-w-6xl">
             <div className="grid gap-12 md:grid-cols-[1.5fr_1fr_1fr]">
               {/* Brand Column */}
