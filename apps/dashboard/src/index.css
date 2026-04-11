@@ -1,5 +1,29 @@
 @import "tailwindcss";
 
+/* ─── Shadcn CSS Variables + Tailwind v4 Theme ─── */
+@theme {
+  --color-background: hsl(0 0% 3.9%);
+  --color-foreground: hsl(0 0% 98%);
+  --color-card: hsl(0 0% 3.9%);
+  --color-card-foreground: hsl(0 0% 98%);
+  --color-popover: hsl(0 0% 3.9%);
+  --color-popover-foreground: hsl(0 0% 98%);
+  --color-primary: hsl(0 0% 98%);
+  --color-primary-foreground: hsl(0 0% 9%);
+  --color-secondary: hsl(0 0% 14.9%);
+  --color-secondary-foreground: hsl(0 0% 98%);
+  --color-muted: hsl(0 0% 14.9%);
+  --color-muted-foreground: hsl(0 0% 63.9%);
+  --color-accent: hsl(0 0% 14.9%);
+  --color-accent-foreground: hsl(0 0% 98%);
+  --color-destructive: hsl(0 62.8% 30.6%);
+  --color-destructive-foreground: hsl(0 0% 98%);
+  --color-border: hsl(0 0% 14.9%);
+  --color-input: hsl(0 0% 14.9%);
+  --color-ring: hsl(0 0% 83.1%);
+  --radius: 0.5rem;
+}
+
 /* ─── Saans Font Family ─── */
 @font-face {
   font-family: 'Saans';
@@ -117,13 +141,7 @@
   --color-text-primary: #f3f4f6;
 }
 
-/* ─── Global resets (NO background/color on body to avoid conflicts) ─── */
-*, *::before, *::after {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
+/* ─── Global resets ─── */
 html {
   overflow-x: hidden;
   width: 100%;
@@ -228,8 +246,120 @@ code {
   animation: pulse-dot 2s ease-in-out infinite;
 }
 
+/* ─── Floating icons idle animation (stats section) ─── */
+@keyframes float-idle {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-14px); }
+}
+
+/* ─── App grid marquee scroll animations ─── */
+@keyframes scroll-left {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+@keyframes scroll-right {
+  from { transform: translateX(-50%); }
+  to   { transform: translateX(0); }
+}
+
+/* ─── Glare/shimmer sweep for button hover ─── */
+@keyframes glare-sweep {
+  0% { background-position: 200% 0; }
+  100% { background-position: -100% 0; }
+}
+
 /* ─── Floating decorative icons ─── */
 .floating-icon {
   pointer-events: none;
   z-index: 0;
+}
+
+/* ─── Shadcn Animations ─── */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes zoomIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes zoomOut {
+  from { transform: scale(1); opacity: 1; }
+  to { transform: scale(0.95); opacity: 0; }
+}
+
+@keyframes slideInFromLeft {
+  from { transform: translateX(-50%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes slideOutToLeft {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@keyframes slideInFromTop {
+  from { transform: translateY(-48%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes slideOutToTop {
+  from { transform: translateY(0); }
+  to { transform: translateY(-48%); }
+}
+
+.animate-in {
+  animation: fadeIn 0.2s ease-out;
+}
+
+.animate-out {
+  animation: fadeOut 0.2s ease-in;
+}
+
+.data-\[state\=open\]\:animate-in[data-state="open"] {
+  animation: fadeIn 0.2s ease-out;
+}
+
+.data-\[state\=closed\]\:animate-out[data-state="closed"] {
+  animation: fadeOut 0.2s ease-in;
+}
+
+.data-\[state\=closed\]\:fade-out-0[data-state="closed"] {
+  animation: fadeOut 0.2s ease-in;
+}
+
+.data-\[state\=open\]\:fade-in-0[data-state="open"] {
+  animation: fadeIn 0.2s ease-out;
+}
+
+.data-\[state\=closed\]\:zoom-out-95[data-state="closed"] {
+  animation: zoomOut 0.2s ease-in;
+}
+
+.data-\[state\=open\]\:zoom-in-95[data-state="open"] {
+  animation: zoomIn 0.2s ease-out;
+}
+
+.data-\[state\=closed\]\:slide-out-to-left-1\/2[data-state="closed"] {
+  animation: slideOutToLeft 0.2s ease-in;
+}
+
+.data-\[state\=open\]\:slide-in-from-left-1\/2[data-state="open"] {
+  animation: slideInFromLeft 0.2s ease-out;
+}
+
+.data-\[state\=closed\]\:slide-out-to-top-\[48\%\][data-state="closed"] {
+  animation: slideOutToTop 0.2s ease-in;
+}
+
+.data-\[state\=open\]\:slide-in-from-top-\[48\%\][data-state="open"] {
+  animation: slideInFromTop 0.2s ease-out;
 }

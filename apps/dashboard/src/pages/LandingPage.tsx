@@ -646,7 +646,7 @@ export default function LandingPage() {
           <motion.div
             className="pointer-events-all relative flex items-center rounded-full overflow-hidden"
             animate={{
-              maxWidth: scrolled ? 780 : 520,
+              maxWidth: scrolled ? 860 : 520,
             }}
             transition={{ type: 'spring', stiffness: 300, damping: 25 }}
             style={{
@@ -998,18 +998,55 @@ export default function LandingPage() {
             </h2>
             <p className="mt-5 text-lg text-gray-400">Use Owivara free for as long as you like. No credit card required.</p>
             <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-              <Link to="/signup" className="rounded-full bg-green-500 px-8 py-3.5 text-base font-semibold text-white hover:bg-green-400 transition-colors whitespace-nowrap">
-                Start free — no card needed
-              </Link>
-              <a
-                href="#pricing"
-                className="inline-flex items-center gap-2 rounded-full border border-white/20 px-8 py-3.5 text-base font-medium text-white transition-all duration-300 whitespace-nowrap hover:border-white/10 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-1px_0_rgba(0,0,0,0.2),0_2px_8px_rgba(0,0,0,0.3)] hover:bg-[linear-gradient(145deg,#2a2a2a_0%,#1a1a1a_50%,#111111_100%)]"
-                style={{
-                  background: 'transparent',
-                }}
-              >
-                View pricing <IconsaxIcon icon="arrow-right" className="text-gray-400 transition-colors" />
-              </a>
+              {/* Green CTA with BorderGlow outer effect */}
+              <div className="relative group">
+                {/* Outer glow layer — activates on hover */}
+                <div
+                  className="absolute rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+                  style={{
+                    inset: '-6px',
+                    boxShadow: '0 0 20px rgba(34,197,94,0.3), 0 0 60px rgba(34,197,94,0.15), inset 0 0 20px rgba(34,197,94,0.1)',
+                    borderRadius: '9999px',
+                  }}
+                />
+                <Link
+                  to="/signup"
+                  className="relative rounded-full bg-green-500 px-8 py-3.5 text-base font-semibold text-white hover:bg-green-400 transition-all duration-300 whitespace-nowrap group-hover:shadow-[0_0_30px_rgba(34,197,94,0.4),0_0_80px_rgba(34,197,94,0.15)]"
+                >
+                  {/* Glare shimmer line on hover */}
+                  <span
+                    className="absolute inset-0 rounded-full overflow-hidden opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+                    style={{
+                      background: 'linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.2) 45%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0.2) 55%, transparent 60%)',
+                      backgroundSize: '250% 100%',
+                      animation: 'glare-sweep 1.2s ease-in-out infinite',
+                    }}
+                  />
+                  Start free — no card needed
+                </Link>
+              </div>
+
+              {/* View pricing with glare shimmer */}
+              <div className="relative group">
+                <a
+                  href="#pricing"
+                  className="relative inline-flex items-center gap-2 rounded-full border border-white/20 px-8 py-3.5 text-base font-medium text-white transition-all duration-300 whitespace-nowrap overflow-hidden hover:border-white/10 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-1px_0_rgba(0,0,0,0.2),0_2px_8px_rgba(0,0,0,0.3)] hover:bg-[linear-gradient(145deg,#2a2a2a_0%,#1a1a1a_50%,#111111_100%)]"
+                  style={{
+                    background: 'transparent',
+                  }}
+                >
+                  {/* Glare shimmer line on hover */}
+                  <span
+                    className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+                    style={{
+                      background: 'linear-gradient(105deg, transparent 35%, rgba(255,255,255,0.1) 45%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.1) 55%, transparent 65%)',
+                      backgroundSize: '250% 100%',
+                      animation: 'glare-sweep 1.5s ease-in-out infinite',
+                    }}
+                  />
+                  View pricing <IconsaxIcon icon="arrow-right" className="text-gray-400 transition-colors" />
+                </a>
+              </div>
             </div>
           </div>
         </section>
