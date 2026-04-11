@@ -4,8 +4,15 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { getCurrentUser, getCurrentUserEmail, signOut, verifyEmail, resendVerificationEmail } from '@owivara/insforge'
 import SEOHead from '../components/SEOHead'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog'
 import { AnimatedOTPInput } from '../components/ui/otp-input'
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '../components/ui/breadcrumb'
 
 export default function VerifyPage() {
   const [searchParams] = useSearchParams()
@@ -55,8 +62,8 @@ export default function VerifyPage() {
     const checkVerified = async () => {
       try {
         const user = await getCurrentUser()
+        // InsForge returns camelCase: emailVerified
         if (mounted && user && ((user as unknown) as Record<string, unknown>).emailVerified) {
-          // User is verified AND has a session — redirect to dashboard
           window.location.href = '/dashboard'
         }
       } catch {
@@ -67,14 +74,6 @@ export default function VerifyPage() {
     const interval = setInterval(checkVerified, 5000)
     return () => { mounted = false; clearInterval(interval) }
   }, [navigate, email])
-
-  // Mask email for privacy display (e.g., em*****@example.com)
-  const maskedEmail = (() => {
-    const [local, domain] = email.split('@')
-    if (!domain) return email
-    const masked = local.charAt(0) + '***' + local.charAt(local.length - 1)
-    return `${masked}@${domain}`
-  })()
 
   const handleResend = useCallback(async () => {
     if (!email) return
@@ -117,27 +116,19 @@ export default function VerifyPage() {
     setSuccess('')
     setLoading(true)
 
-    console.log('[VERIFY] Attempting verification for:', email, 'with OTP length:', otp.length)
-
     try {
       const result = await verifyEmail(email, otp)
-      console.log('[VERIFY] Verification result:', result)
-      
       if (!result.success) {
         setError(result.error || 'Invalid or expired verification code.')
       } else {
         setSuccess('Email verified successfully!')
-        // Per InsForge docs: verification doesn't create a session.
-        // Redirect to login so the user can sign in and establish their session.
-        console.log('[VERIFY] Redirecting to login for session creation...')
         setTimeout(() => {
           navigate('/login', {
             state: { message: 'Email verified successfully! Please sign in.' }
           })
-        }, 1500)
+        }, 1000)
       }
-    } catch (err) {
-      console.error('[VERIFY] Error:', err)
+    } catch {
       setError('Network error. Please check your connection and try again.')
     } finally {
       setLoading(false)
@@ -158,145 +149,138 @@ export default function VerifyPage() {
   return (
     <>
       <SEOHead title="Verify Email — Owivara" description="Enter the 6-digit verification code sent to your email." path="/verify" noindex={true} />
-      <div className="flex min-h-screen items-center justify-center bg-[#0a0a0a] p-4">
+      <div className="flex min-h-screen items-start justify-center bg-[#0a0a0a] px-4 pt-12">
 
-        {/* Back button */}
-        <Link
-          to={isAuthenticated ? "/dashboard" : "/signup"}
-          className="fixed left-4 top-4 z-50 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-gray-500 transition-colors hover:bg-white/5 hover:text-gray-300"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M20 12H4M4 12L10 6M4 12L10 18" />
-          </svg>
-          Back
-        </Link>
-
-        {/* Owivara logo */}
-        <div className="fixed left-4 top-12 z-50 flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-green-500/20 border border-green-500/30">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2V6M8 6H16C17.1046 6 18 6.89543 18 8V16C18 17.1046 17.1046 18 16 18H8C6.89543 18 6 17.1046 6 16V8C6 6.89543 6.89543 6 8 6ZM9.5 12H9.51M14.5 12H14.51M5 10H3C2.44772 10 2 10.4477 2 11V15C2 15.5523 2.44772 16 3 16H5M19 10H21C21.5523 10 22 10.4477 22 11V15C22 15.5523 21.5523 16 21 16H19" />
-            </svg>
-          </div>
-          <span className="text-sm font-semibold text-gray-400">Owivara</span>
+        {/* Breadcrumb — top left of page */}
+        <div className="fixed left-5 top-5 z-50">
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/signup">Sign Up</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.2 8.4c.5.38.8.97.8 1.6v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V10a2 2 0 0 1 .8-1.6l8-6a2 2 0 0 1 2.4 0l8 6Z"/><path d="m22 10-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 10"/></svg>
+                <BreadcrumbPage>Verify</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
         </div>
 
-        {/* Verify Dialog */}
-        <Dialog open={true} onOpenChange={() => navigate(isAuthenticated ? "/dashboard" : "/signup")}>
-          <DialogContent className="border-white/10 bg-[#0d0d0d] text-white shadow-2xl shadow-black/50 sm:max-w-[420px]">
-            {/* Header */}
-            <div className="flex flex-col items-center gap-3 pb-2">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/10">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
-                  <polyline points="22 4 12 14.01 9 11.01" />
-                </svg>
-              </div>
-              <DialogHeader className="text-center">
-                <DialogTitle className="text-xl font-semibold tracking-tight">Verify your email</DialogTitle>
-                <DialogDescription className="text-sm text-gray-500">
-                  We sent a 6-digit code to
-                </DialogDescription>
-                <p className="mt-1 text-sm font-medium text-green-400" title={email}>
-                  {maskedEmail}
-                </p>
-              </DialogHeader>
-            </div>
-
-            {/* Error message */}
-            <AnimatePresence>
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="overflow-hidden"
-                >
-                  <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-sm text-red-400 text-center">
-                    {error}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Success message */}
-            <AnimatePresence>
-              {success && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="overflow-hidden"
-                >
-                  <div className="rounded-lg border border-green-500/20 bg-green-500/10 px-4 py-2.5 text-sm text-green-400 text-center">
-                    {success}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* OTP Input */}
-            <div className="py-4">
-              <div className="flex justify-center">
-                <AnimatedOTPInput
-                  value={code}
-                  onChange={setCode}
-                  onComplete={handleOTPComplete}
-                  maxLength={6}
-                  className="[&>div]:gap-3"
-                  containerClassName="[&>div]:border-white/10 [&>div>div]:border-white/20 [&>div>div]:bg-white/5 [&>div>div]:text-white [&>div>div]:data-[active=true]:border-green-500/50 [&>div>div]:data-[active=true]:ring-green-500/20"
-                />
-              </div>
-            </div>
-
-            {/* Loading state */}
-            <AnimatePresence>
-              {loading && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="text-center text-sm text-gray-500"
-                >
-                  Verifying code...
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Resend code */}
+        {/* Verify Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20, scale: 0.97 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          className="w-full max-w-[360px] rounded-2xl border border-white/10 bg-[#0d0d0d] p-5 shadow-2xl shadow-black/50"
+        >
+          {/* Header */}
+          <div className="flex flex-col items-center gap-2.5 pb-3">
+            <img src="/logo.svg" alt="Owivara" className="h-10 w-10 rounded-lg object-cover" />
             <div className="text-center">
-              <p className="text-sm text-gray-500">
-                Didn't receive the code?{' '}
-                {countdown > 0 ? (
-                  <span className="text-gray-600">Resend in {countdown}s</span>
-                ) : (
-                  <button
-                    onClick={handleResend}
-                    disabled={resendLoading || resendAttempts >= 3}
-                    className="text-green-400 hover:text-green-300 font-medium transition-colors disabled:opacity-50"
-                  >
-                    {resendLoading ? 'Sending...' : 'Resend code'}
-                  </button>
-                )}
-              </p>
-              {resendAttempts > 0 && (
-                <p className="mt-2 text-xs text-gray-600">{resendAttempts}/3 resend attempts used</p>
-              )}
+              <h1 className="text-lg font-semibold text-white tracking-tight" style={{ fontFamily: 'Saans, sans-serif' }}>Verify your email</h1>
+              <p className="mt-0.5 text-xs text-gray-500" style={{ fontFamily: 'Saans, sans-serif' }}>We sent a 6-digit code to</p>
+              <p className="mt-0.5 text-xs font-medium text-green-400" style={{ fontFamily: 'Saans, sans-serif' }}>{email}</p>
             </div>
+          </div>
 
-            {/* Sign out if authenticated */}
-            {isAuthenticated && (
-              <div className="text-center pt-2">
-                <button
-                  onClick={async () => { await signOut(); navigate('/login') }}
-                  className="text-sm text-gray-500 hover:text-gray-300"
-                >
-                  Sign out
-                </button>
-              </div>
+          {/* Error message */}
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden mb-4"
+              >
+                <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-sm text-red-400 text-center">
+                  {error}
+                </div>
+              </motion.div>
             )}
-          </DialogContent>
-        </Dialog>
+          </AnimatePresence>
+
+          {/* Success message */}
+          <AnimatePresence>
+            {success && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden mb-4"
+              >
+                <div className="rounded-lg border border-green-500/20 bg-green-500/10 px-4 py-2.5 text-sm text-green-400 text-center">
+                  {success}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* OTP Input */}
+          <div className="py-4">
+            <div className="flex justify-center">
+              <AnimatedOTPInput
+                value={code}
+                onChange={setCode}
+                onComplete={handleOTPComplete}
+                maxLength={6}
+              />
+            </div>
+          </div>
+
+          {/* Loading state */}
+          <AnimatePresence>
+            {loading && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="text-center text-sm text-gray-500 -mt-2 mb-4"
+              >
+                Verifying code...
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Resend code */}
+          <div className="text-center">
+            <p className="text-sm text-gray-500">
+              Didn't receive the code?{' '}
+              {countdown > 0 ? (
+                <span className="text-gray-600">Resend in {countdown}s</span>
+              ) : (
+                <button
+                  onClick={handleResend}
+                  disabled={resendLoading || resendAttempts >= 3}
+                  className="text-green-400 hover:text-green-300 font-medium transition-colors disabled:opacity-50"
+                >
+                  {resendLoading ? 'Sending...' : 'Resend code'}
+                </button>
+              )}
+            </p>
+            {resendAttempts > 0 && (
+              <p className="mt-2 text-xs text-gray-600">{resendAttempts}/3 resend attempts used</p>
+            )}
+          </div>
+
+          {/* Sign out if authenticated */}
+          {isAuthenticated && (
+            <div className="text-center mt-4 pt-4 border-t border-white/5">
+              <button
+                onClick={async () => { await signOut(); navigate('/login') }}
+                className="text-sm text-gray-500 hover:text-gray-300"
+              >
+                Sign out
+              </button>
+            </div>
+          )}
+        </motion.div>
       </div>
     </>
   )
