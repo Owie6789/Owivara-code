@@ -51,9 +51,11 @@ export default function SignupPage() {
     } else {
       // Signup succeeded. Check if the user is already verified
       // (they may have signed up before and verified, then tried signing up again)
-      const userData = result.data as unknown as Record<string, unknown> | undefined
-      const isAlreadyVerified = userData?.emailVerified === true
-      
+      // result.data = { user: { emailVerified: true, ... }, accessToken, csrfToken }
+      const sessionData = result.data as unknown as Record<string, unknown> | undefined
+      const user = sessionData?.user as Record<string, unknown> | undefined
+      const isAlreadyVerified = user?.emailVerified === true
+
       if (isAlreadyVerified) {
         // User already exists and is verified — send them to login instead of verify
         console.log('[SIGNUP] User already verified, redirecting to login')
@@ -63,7 +65,10 @@ export default function SignupPage() {
       } else {
         // New user, not yet verified — send to verification
         try {
-          await callInitProfile(result.data!.id, { display_name: displayName })
+          const userId = (user as Record<string, unknown>)?.id as string | undefined
+          if (userId) {
+            await callInitProfile(userId, { display_name: displayName })
+          }
         } catch {
           // Profile init failure is non-fatal
         }

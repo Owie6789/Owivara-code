@@ -7,6 +7,14 @@ import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { Checkbox } from '../components/ui/checkbox'
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '../components/ui/breadcrumb'
 
 // Client-side rate limiter: 5 login attempts per minute
 const loginLimiter = new RateLimiter()
@@ -49,11 +57,17 @@ export default function LoginPage() {
         setError(result.error.message)
       }
     } else {
-      const user = result.data as unknown as Record<string, unknown>
-      const isVerified = user.emailVerified === true
+      // result.data = { user: { emailVerified: true, ... }, accessToken, csrfToken }
+      const sessionData = result.data as unknown as Record<string, unknown>
+      const user = sessionData.user as Record<string, unknown> | undefined
+      const isVerified = user?.emailVerified === true
+      console.log('[LOGIN] isVerified:', isVerified, '- emailVerified:', user?.emailVerified)
+
       if (!isVerified) {
+        console.log('[LOGIN] User NOT verified, redirecting to verify page')
         navigate(`/verify?email=${encodeURIComponent(email)}`)
       } else {
+        console.log('[LOGIN] User verified, redirecting to dashboard')
         navigate('/dashboard', { state: { message: 'Signed in successfully!' } })
       }
     }
@@ -130,27 +144,24 @@ export default function LoginPage() {
         noindex={true}
       />
 
-      <div className="flex min-h-screen items-center justify-center bg-[#0a0a0a] px-4">
+      <div className="flex min-h-screen items-start justify-center bg-[#0a0a0a] px-4 pt-12">
 
-        {/* Back button */}
-        <Link
-          to="/"
-          className="fixed left-4 top-4 z-50 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-gray-500 transition-colors hover:bg-white/5 hover:text-gray-300"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M20 12H4M4 12L10 6M4 12L10 18" />
-          </svg>
-          Back
-        </Link>
-
-        {/* Owivara logo */}
-        <div className="fixed left-4 top-12 z-50 flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-green-500/20 border border-green-500/30">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2V6M8 6H16C17.1046 6 18 6.89543 18 8V16C18 17.1046 17.1046 18 16 18H8C6.89543 18 6 17.1046 6 16V8C6 6.89543 6.89543 6 8 6ZM9.5 12H9.51M14.5 12H14.51M5 10H3C2.44772 10 2 10.4477 2 11V15C2 15.5523 2.44772 16 3 16H5M19 10H21C21.5523 10 22 10.4477 22 11V15C22 15.5523 21.5523 16 21 16H19" />
-            </svg>
-          </div>
-          <span className="text-sm font-semibold text-gray-400">Owivara</span>
+        {/* Breadcrumb — top left of page */}
+        <div className="fixed left-5 top-5 z-50">
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+                <BreadcrumbPage>Login</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
         </div>
 
         {/* Login Card */}
@@ -158,19 +169,14 @@ export default function LoginPage() {
           initial={{ opacity: 0, y: 20, scale: 0.97 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-          className="w-full max-w-[400px] rounded-2xl border border-white/10 bg-[#0d0d0d] p-6 shadow-2xl shadow-black/50 sm:p-8"
+          className="w-full max-w-[360px] rounded-2xl border border-white/10 bg-[#0d0d0d] p-5 shadow-2xl shadow-black/50"
         >
           {/* Header */}
-          <div className="flex flex-col items-center gap-3 pb-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/10">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
-                <circle cx="12" cy="12" r="10" />
-                <circle cx="12" cy="12" r="3" fill="currentColor" />
-              </svg>
-            </div>
+          <div className="flex flex-col items-center gap-2.5 pb-3">
+            <img src="/logo.svg" alt="Owivara" className="h-10 w-10 rounded-lg object-cover" />
             <div className="text-center">
-              <h1 className="text-xl font-semibold text-white tracking-tight">Welcome back</h1>
-              <p className="mt-1 text-sm text-gray-500">Enter your credentials to login to your account.</p>
+              <h1 className="text-lg font-semibold text-white tracking-tight" style={{ fontFamily: 'Saans, sans-serif' }}>Welcome back</h1>
+              <p className="mt-0.5 text-xs text-gray-500" style={{ fontFamily: 'Saans, sans-serif' }}>Enter your credentials to login.</p>
             </div>
           </div>
 
@@ -211,28 +217,36 @@ export default function LoginPage() {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-sm font-medium text-gray-300">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  placeholder="hi@yourcompany.com"
-                  className="h-10 rounded-lg border-white/10 bg-white/5 text-white placeholder:text-gray-600 focus-visible:border-green-500/50 focus-visible:ring-green-500/20"
-                />
+                <div className="relative">
+                  <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    placeholder="you@email.com"
+                    className="h-10 pl-10 rounded-lg border-white/10 bg-white/5 text-white placeholder:text-gray-600 focus-visible:border-green-500/50 focus-visible:ring-green-500/20"
+                    style={{ fontFamily: 'Saans, sans-serif' }}
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="password" className="text-sm font-medium text-gray-300">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  placeholder="Enter your password"
-                  className="h-10 rounded-lg border-white/10 bg-white/5 text-white placeholder:text-gray-600 focus-visible:border-green-500/50 focus-visible:ring-green-500/20"
-                />
+                <div className="relative">
+                  <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    placeholder="Enter your password"
+                    className="h-10 pl-10 rounded-lg border-white/10 bg-white/5 text-white placeholder:text-gray-600 focus-visible:border-green-500/50 focus-visible:ring-green-500/20"
+                    style={{ fontFamily: 'Saans, sans-serif' }}
+                  />
+                </div>
               </div>
             </div>
 
