@@ -399,6 +399,15 @@ const features = [
   { icon: 'users', title: 'Team collaboration', description: 'Invite team members with role-based access to bots and conversations.', tab: 'Setup' },
   { icon: 'global', title: 'Multi-language AI', description: 'Your bot speaks your customer\'s language — English, Pidgin, Yoruba, Igbo, Hausa.', tab: 'AI' },
   { icon: 'image', title: 'Media support', description: 'Send and receive images, documents, voice notes, and location data.', tab: 'Monitoring' },
+  // New: Group Management features
+  { icon: 'people', title: 'Group admin tools', description: 'Kick, promote, demote, mute groups, change group name/description, and manage members.', tab: 'Commands' },
+  { icon: 'shield-security', title: 'Anti-spam & anti-link', description: 'Auto-kick spammers, block external links, anti-fake, and anti-promote/demote protection.', tab: 'Commands' },
+  { icon: 'calendar', title: 'Scheduled messages', description: 'Schedule messages to send at specific times. Supports recurring and one-time schedules.', tab: 'Commands' },
+  { icon: 'filter', title: 'Auto-filter & moderation', description: 'Auto-delete harmful words, anti-bot detection, and custom filter rules for your groups.', tab: 'Commands' },
+  { icon: 'download', title: 'Social media downloader', description: 'Download from Instagram, TikTok, Facebook, YouTube, Pinterest, and Twitter with one command.', tab: 'Media' },
+  { icon: 'music', title: 'YouTube music & video', description: 'Search and download songs, videos, or playlists directly from YouTube via chat.', tab: 'Media' },
+  { icon: 'sticker', title: 'Sticker maker & converters', description: 'Turn images, GIFs, and videos into stickers. Convert between formats (MP3, MP4, photo, doc).', tab: 'Media' },
+  { icon: 'edit-2', title: 'Media editing tools', description: 'Trim, rotate, flip, slow-mo, circle crop, and add audio to images with built-in commands.', tab: 'Media' },
 ]
 
 const plans = [
@@ -622,7 +631,7 @@ export default function LandingPage() {
   const [tab, setTab] = useState(0)
   const [scrolled, setScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const tabs = ['All', 'Setup', 'AI', 'Monitoring']
+  const tabs = ['All', 'Setup', 'AI', 'Monitoring', 'Commands', 'Media']
   const featuresRef = useRef<HTMLElement>(null)
 
   // Centralized scroll helper — accounts for sticky nav offset
@@ -649,7 +658,9 @@ export default function LandingPage() {
     tab === 0 ? features :
     tab === 1 ? features.filter(f => f.tab === 'Setup') :
     tab === 2 ? features.filter(f => f.tab === 'AI') :
-    features.filter(f => f.tab === 'Monitoring')
+    tab === 3 ? features.filter(f => f.tab === 'Monitoring') :
+    tab === 4 ? features.filter(f => f.tab === 'Commands') :
+    features.filter(f => f.tab === 'Media')
 
   return (
     <>
@@ -658,15 +669,14 @@ export default function LandingPage() {
         description="The freemium WhatsApp bot platform for Nigeria and Africa. Build AI-powered bots without coding. Private, secure, and fast."
         path="/"
       />
-      <div className="min-h-screen w-full bg-white font-sans text-[#0a0a0a]">
 
-        {/* ══ NAV — Mobbin-inspired ═════════════════════════ */}
-        <nav className="fixed top-0 left-0 right-0 z-50 flex justify-center pointer-events-none" style={{ paddingTop: '14px', paddingLeft: '1rem', paddingRight: '1rem' }}>
+      {/* ══ NAV — Mobbin-inspired (moved outside wrapper for proper z-index stacking) ═══ */}
+      <nav className="fixed top-0 left-0 right-0 z-[9999] flex justify-center pointer-events-none" style={{ paddingTop: '14px', paddingLeft: '1rem', paddingRight: '1rem' }}>
           {/* The actual pill */}
           <motion.div
             className="pointer-events-all relative flex items-center rounded-full overflow-hidden"
             animate={{
-              maxWidth: scrolled ? 920 : 520,
+              maxWidth: scrolled ? 620 : 540,
             }}
             transition={{ type: 'spring', stiffness: 300, damping: 25 }}
             style={{
@@ -748,7 +758,7 @@ export default function LandingPage() {
 
         {/* Mobile dropdown */}
         {mobileMenuOpen && (
-          <div className="fixed top-[78px] left-4 right-4 z-40 rounded-2xl border border-gray-200 bg-white/95 backdrop-blur-xl px-6 pb-6 pt-4 shadow-[0_8px_32px_rgba(0,0,0,0.08)] md:hidden">
+          <div className="fixed top-[78px] left-4 right-4 z-[10000] rounded-2xl border border-gray-200 bg-white/95 backdrop-blur-xl px-6 pb-6 pt-4 shadow-[0_8px_32px_rgba(0,0,0,0.08)] md:hidden">
             <div className="flex flex-col gap-1">
               <button 
                 onClick={() => scrollToSection('features')} 
@@ -769,6 +779,9 @@ export default function LandingPage() {
             </div>
           </div>
         )}
+
+        {/* Main content wrapper — contains all scrollable content */}
+        <div className="min-h-screen w-full bg-white font-sans text-[#0a0a0a]">
 
         {/* ══ HERO ══════════════════════════════════════════ */}
         <div className="flex flex-col items-center text-center px-6 pt-40 pb-20 md:px-12 lg:px-24">
@@ -1111,16 +1124,20 @@ export default function LandingPage() {
               })}
             </div>
           ))}
+        </div>
 
-          {/* Gradual blur at bottom of marquee section */}
+        </div> {/* End main content wrapper */}
+
+        {/* Gradual blur — covers entire page, sticky to footer top, hooks back on scroll up */}
+        <div className="relative bg-[#0a0a0a] sticky bottom-0 z-[100]">
           <GradualBlur
-            position="bottom"
-            height="8rem"
-            strength={3}
-            divCount={8}
+            position="top"
+            height="12rem"
+            strength={4}
+            divCount={10}
             curve="bezier"
             exponential
-            opacity={0.9}
+            opacity={1}
           />
         </div>
 
@@ -1181,7 +1198,6 @@ export default function LandingPage() {
             </div>
           </div>
         </footer>
-      </div>
     </>
   )
 }
