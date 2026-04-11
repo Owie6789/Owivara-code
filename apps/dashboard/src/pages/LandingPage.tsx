@@ -280,25 +280,26 @@ function ScrollJackedStats() {
 
   // Map scroll progress (0→1) to which stat is active
   // 350vh = ~3.5x viewport scroll. Each stat gets ~1 viewport scroll to transition.
-  const stat0Opacity = useTransform(scrollProgress, [0, 0.05, 0.25, 0.5], [0, 1, 1, 0])
-  const stat0Y = useTransform(scrollProgress, [0, 0.05, 0.25, 0.5], [60, 0, 0, -60])
-  const stat0Scale = useTransform(scrollProgress, [0, 0.05, 0.25, 0.5], [0.9, 1, 1, 0.9])
+  // Extended ranges so each stat stays visible longer
+  const stat0Opacity = useTransform(scrollProgress, [0, 0.03, 0.20, 0.33], [0, 1, 1, 0])
+  const stat0Y = useTransform(scrollProgress, [0, 0.03, 0.20, 0.33], [60, 0, 0, -60])
+  const stat0Scale = useTransform(scrollProgress, [0, 0.03, 0.20, 0.33], [0.9, 1, 1, 0.9])
 
-  const stat1Opacity = useTransform(scrollProgress, [0.35, 0.4, 0.55, 0.75, 0.8], [0, 1, 1, 1, 0])
-  const stat1Y = useTransform(scrollProgress, [0.35, 0.4, 0.55, 0.75, 0.8], [60, 0, 0, 0, -60])
-  const stat1Scale = useTransform(scrollProgress, [0.35, 0.4, 0.55, 0.75, 0.8], [0.9, 1, 1, 1, 0.9])
+  const stat1Opacity = useTransform(scrollProgress, [0.25, 0.30, 0.45, 0.60, 0.68], [0, 1, 1, 1, 0])
+  const stat1Y = useTransform(scrollProgress, [0.25, 0.30, 0.45, 0.60, 0.68], [60, 0, 0, 0, -60])
+  const stat1Scale = useTransform(scrollProgress, [0.25, 0.30, 0.45, 0.60, 0.68], [0.9, 1, 1, 1, 0.9])
 
-  const stat2Opacity = useTransform(scrollProgress, [0.65, 0.7, 0.8, 0.95], [0, 1, 1, 1])
-  const stat2Y = useTransform(scrollProgress, [0.65, 0.7, 0.8, 0.95], [60, 0, 0, 0])
-  const stat2Scale = useTransform(scrollProgress, [0.65, 0.7, 0.8, 0.95], [0.9, 1, 1, 1])
+  const stat2Opacity = useTransform(scrollProgress, [0.60, 0.65, 0.75, 0.95], [0, 1, 1, 1])
+  const stat2Y = useTransform(scrollProgress, [0.60, 0.65, 0.75, 0.95], [60, 0, 0, 0])
+  const stat2Scale = useTransform(scrollProgress, [0.60, 0.65, 0.75, 0.95], [0.9, 1, 1, 1])
 
-  // Progress dots
-  const dot0 = useTransform(scrollProgress, [0, 0.15, 0.4], [0.8, 1.4, 0.8])
-  const dot0Color = useTransform(scrollProgress, [0, 0.12, 0.4], ['#d1d5db', '#0a0a0a', '#d1d5db'])
-  const dot1 = useTransform(scrollProgress, [0.3, 0.5, 0.7], [0.8, 1.4, 0.8])
-  const dot1Color = useTransform(scrollProgress, [0.3, 0.47, 0.7], ['#d1d5db', '#0a0a0a', '#d1d5db'])
-  const dot2 = useTransform(scrollProgress, [0.6, 0.75, 0.95], [0.8, 1.4, 0.8])
-  const dot2Color = useTransform(scrollProgress, [0.6, 0.72, 0.95], ['#d1d5db', '#0a0a0a', '#d1d5db'])
+  // Progress dots — wider active zones
+  const dot0 = useTransform(scrollProgress, [0, 0.10, 0.30], [0.8, 1.4, 0.8])
+  const dot0Color = useTransform(scrollProgress, [0, 0.08, 0.30], ['#d1d5db', '#0a0a0a', '#d1d5db'])
+  const dot1 = useTransform(scrollProgress, [0.25, 0.45, 0.65], [0.8, 1.4, 0.8])
+  const dot1Color = useTransform(scrollProgress, [0.25, 0.42, 0.65], ['#d1d5db', '#0a0a0a', '#d1d5db'])
+  const dot2 = useTransform(scrollProgress, [0.58, 0.72, 0.92], [0.8, 1.4, 0.8])
+  const dot2Color = useTransform(scrollProgress, [0.58, 0.70, 0.92], ['#d1d5db', '#0a0a0a', '#d1d5db'])
 
   return (
     <div ref={containerRef} style={{ height: '350vh' }}>
@@ -432,20 +433,178 @@ const testimonials = [
 
 const trustedLogos = ['Flutterwave', 'Paystack', 'Andela', 'Interswitch', 'MTN', 'Airtel', 'Glo', 'Opay', 'Moniepoint', 'Kuda']
 
-const appGridItems = [
-  { name: 'Owivara', color: '#22c55e' },
-  { name: 'WhatsApp', color: '#25D366' },
-  { name: 'Gemini', color: '#4285F4' },
-  { name: 'OpenAI', color: '#10a37f' },
-  { name: 'InsForge', color: '#6366f1' },
-  { name: 'React', color: '#61DAFB' },
-  { name: 'Vite', color: '#646CFF' },
-  { name: 'Tailwind', color: '#06B6D4' },
-  { name: 'TypeScript', color: '#3178C6' },
-  { name: 'Node.js', color: '#339933' },
-  { name: 'PostgreSQL', color: '#336791' },
-  { name: 'Baileys', color: '#8B5CF6' },
+// ─── Feature marquee items (replaces tech stack logos) ─────────
+// Each feature has: name, an inline SVG icon, and a dark monochrome palette
+const featureMarqueeItems = [
+  {
+    name: 'View-Once',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5">
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.5" />
+      </svg>
+    ),
+  },
+  {
+    name: 'Auto-Download',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5">
+        <path d="M12 3v12m0 0l-4-4m4 4l4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+  {
+    name: 'AI Chatbot',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5">
+        <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx="8.5" cy="10" r="1" fill="currentColor" />
+        <circle cx="12" cy="10" r="1" fill="currentColor" />
+        <circle cx="15.5" cy="10" r="1" fill="currentColor" />
+      </svg>
+    ),
+  },
+  {
+    name: 'Group Admin',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5">
+        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="1.5" />
+        <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+  {
+    name: 'Media Tools',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5">
+        <rect x="2" y="2" width="20" height="20" rx="3" stroke="currentColor" strokeWidth="1.5" />
+        <circle cx="8" cy="8" r="2" stroke="currentColor" strokeWidth="1.5" />
+        <path d="M21 15l-5-5L5 21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+  {
+    name: 'Stickers',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5">
+        <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" />
+        <circle cx="9" cy="10" r="1" fill="currentColor" />
+        <circle cx="15" cy="10" r="1" fill="currentColor" />
+        <path d="M8.5 15c1 1 2.5 1.5 3.5 1.5s2.5-.5 3.5-1.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+    ),
+  },
+  {
+    name: 'Scheduler',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5">
+        <rect x="3" y="4" width="18" height="18" rx="3" stroke="currentColor" strokeWidth="1.5" />
+        <path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        <path d="M12 14v3l2 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+  {
+    name: 'Anti-Link',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5">
+        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" />
+        <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+    ),
+  },
+  {
+    name: 'Auto-Reply',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5">
+        <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M8 12h8M12 8v8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+    ),
+  },
+  {
+    name: 'Social DL',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5">
+        <rect x="2" y="2" width="20" height="20" rx="5" stroke="currentColor" strokeWidth="1.5" />
+        <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="1.5" />
+        <circle cx="18" cy="6" r="1.5" fill="currentColor" />
+      </svg>
+    ),
+  },
+  {
+    name: 'Warn System',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5">
+        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        <circle cx="12" cy="17" r="0.5" fill="currentColor" />
+      </svg>
+    ),
+  },
+  {
+    name: 'PDF Maker',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5">
+        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M14 2v6h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M9 15h6M9 11h2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+    ),
+  },
+  {
+    name: 'Fancy Text',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5">
+        <path d="M4 7V4h16v3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M12 4v16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        <path d="M8 20h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+    ),
+  },
 ]
+
+// ─── Dark glossy badge style ───────────────────────────────────
+// Each badge uses a dark monochrome palette with a glossy highlight
+// on the top-left edge for a premium 3D pill effect.
+const badgeBaseStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  padding: '8px 16px',
+  borderRadius: '9999px',
+  whiteSpace: 'nowrap',
+  // Dark glossy gradient: brighter top-left, darker bottom-right
+  background: 'linear-gradient(145deg, #2a2a2a 0%, #1a1a1a 50%, #111111 100%)',
+  // Subtle glossy highlight on top-left edge
+  boxShadow:
+    'inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -1px 0 rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.3)',
+  border: '1px solid rgba(255,255,255,0.06)',
+  color: '#a3a3a3',
+  fontSize: '13px',
+  fontWeight: 500,
+  letterSpacing: '-0.01em',
+}
+
+// Subtle color tints per feature for the icon
+const iconTints: Record<number, string> = {
+  0: '#6ee7b7', // View-Once — green tint
+  1: '#93c5fd', // Auto-Download — blue tint
+  2: '#c4b5fd', // AI Chatbot — purple tint
+  3: '#fbbf24', // Group Admin — amber tint
+  4: '#f87171', // Media Tools — red tint
+  5: '#34d399', // Stickers — emerald tint
+  6: '#60a5fa', // Scheduler — sky tint
+  7: '#fb923c', // Anti-Link — orange tint
+  8: '#a78bfa', // Auto-Reply — violet tint
+  9: '#f472b6', // Social DL — pink tint
+  10: '#ef4444', // Warn System — red tint
+  11: '#22d3ee', // PDF Maker — cyan tint
+  12: '#e879f9', // Fancy Text — fuchsia tint
+}
 
 // ════════════════════════════════════════════════════════════════
 // MAIN LANDING PAGE — MOBBIN STYLE
@@ -454,44 +613,15 @@ export default function LandingPage() {
   const [tab, setTab] = useState(0)
   const [scrolled, setScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [activeSection, setActiveSection] = useState('features')
   const tabs = ['All', 'Setup', 'AI', 'Monitoring']
   const featuresRef = useRef<HTMLElement>(null)
-  const pricingRef = useRef<HTMLElement>(null)
-  const testimonialsRef = useRef<HTMLElement>(null)
 
-  // Scroll detection for nav pill + active section tracking
+  // Scroll detection for navbar expand
   useEffect(() => {
     const handleScroll = () => {
-      const scrollY = window.scrollY
-      setScrolled(scrollY > 60)
-
-      // Detect active section based on element positions relative to viewport
-      const viewportCenter = window.innerHeight / 2
-      const sections = [
-        { id: 'features', ref: featuresRef },
-        { id: 'pricing', ref: pricingRef },
-        { id: 'testimonials', ref: testimonialsRef },
-      ]
-
-      let closest = 'features'
-      let closestDist = Infinity
-
-      sections.forEach(({ id, ref }) => {
-        if (!ref.current) return
-        const rect = ref.current.getBoundingClientRect()
-        const center = rect.top + rect.height / 2
-        const dist = Math.abs(center - viewportCenter)
-        if (dist < closestDist) {
-          closestDist = dist
-          closest = id
-        }
-      })
-
-      setActiveSection(closest)
+      setScrolled(window.scrollY > 60)
     }
     window.addEventListener('scroll', handleScroll, { passive: true })
-    handleScroll()
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
@@ -510,75 +640,75 @@ export default function LandingPage() {
       />
       <div className="min-h-screen w-full bg-white font-sans text-[#0a0a0a]">
 
-        {/* ══ NAV — Frosted Glass Layered Darker ═══════════════ */}
-        <nav className="fixed top-0 left-0 right-0 z-50 flex justify-center pointer-events-none" style={{ paddingTop: '12px', paddingLeft: '0.75rem', paddingRight: '0.75rem' }}>
+        {/* ══ NAV — Mobbin-inspired ═════════════════════════ */}
+        <nav className="fixed top-0 left-0 right-0 z-50 flex justify-center pointer-events-none" style={{ paddingTop: '14px', paddingLeft: '1rem', paddingRight: '1rem' }}>
           {/* The actual pill */}
           <motion.div
             className="pointer-events-all relative flex items-center rounded-full overflow-hidden"
             animate={{
-              maxWidth: scrolled ? 720 : 520,
+              maxWidth: scrolled ? 780 : 520,
             }}
             transition={{ type: 'spring', stiffness: 300, damping: 25 }}
             style={{
-              minHeight: '48px',
+              minHeight: '60px',
               backdropFilter: 'blur(24px) saturate(180%)',
               WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-              background: 'rgba(255, 255, 255, 0.72)',
-              border: '1px solid rgba(0, 0, 0, 0.06)',
-              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03)',
+              background: 'rgba(255, 255, 255, 0.8)',
+              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 16px rgba(0, 0, 0, 0.06)',
             }}
           >
-            <div className="flex items-center w-full rounded-full" style={{ minHeight: '48px', paddingLeft: '16px', paddingRight: '12px' }}>
-              {/* Logo */}
-              <Link to="/" className="flex items-center gap-2 shrink-0 mr-2 group" aria-label="Owivara home">
-                <div className="w-7 h-7 rounded-lg overflow-hidden transition-transform duration-200 group-hover:scale-105 group-active:scale-95">
+            <div className="flex items-center w-full rounded-full" style={{ minHeight: '60px', paddingLeft: '32px', paddingRight: '32px' }}>
+              {/* Logo — bigger text like Mobbin */}
+              <Link to="/" className="flex items-center gap-2.5 shrink-0 mr-8 group" aria-label="Owivara home">
+                <div className="w-8 h-8 rounded-lg overflow-hidden transition-transform duration-200 group-hover:scale-105 group-active:scale-95">
                   <img src="/logo.svg" alt="Owivara" className="w-full h-full object-cover" />
                 </div>
-                <span className="text-[14px] font-bold tracking-[-0.02em] text-[#0a0a0a] leading-none whitespace-nowrap">Owivara</span>
+                <span className="text-[18px] font-bold tracking-[-0.02em] text-[#0a0a0a] leading-none whitespace-nowrap">Owivara</span>
               </Link>
 
-              {/* Center Links (desktop) — fixed positions, sliding active indicator */}
-              <div className="hidden md:flex items-center gap-0 ml-3 mr-auto relative">
-                {/* Sliding active pill background */}
-                <motion.div
-                  className="absolute h-7 rounded-full bg-gray-100/80"
-                  animate={{
-                    x: activeSection === 'features' ? 0 : activeSection === 'pricing' ? 84 : activeSection === 'testimonials' ? 168 : -100,
-                    opacity: activeSection ? 1 : 0,
-                    width: 84,
+              {/* Nav Links — plain text, no indicator pill */}
+              <div className="hidden md:flex items-center gap-8 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const el = document.getElementById('features')
+                    if (el) {
+                      const navHeight = 80
+                      const top = el.getBoundingClientRect().top + window.scrollY - navHeight
+                      window.scrollTo({ top, behavior: 'smooth' })
+                    }
                   }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                />
-                {[
-                  { label: 'Features', id: 'features' },
-                  { label: 'Pricing', id: 'pricing' },
-                  { label: 'Reviews', id: 'testimonials' },
-                ].map((item) => (
-                  <a
-                    key={item.id}
-                    href={`#${item.id}`}
-                    className={`relative z-10 flex items-center justify-center px-3 py-1.5 text-[13px] font-medium rounded-full whitespace-nowrap leading-none transition-colors duration-200 ${
-                      activeSection === item.id ? 'text-[#0a0a0a]' : 'text-gray-500 hover:text-gray-700'
-                    }`}
-                    style={{ width: '84px' }}
-                  >
-                    {item.label}
-                  </a>
-                ))}
+                  className="text-[15px] font-semibold text-gray-600 hover:text-[#0a0a0a] transition-colors whitespace-nowrap cursor-pointer bg-transparent border-none p-0"
+                >
+                  Features
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const el = document.getElementById('pricing')
+                    if (el) {
+                      const navHeight = 80
+                      const top = el.getBoundingClientRect().top + window.scrollY - navHeight
+                      window.scrollTo({ top, behavior: 'smooth' })
+                    }
+                  }}
+                  className="text-[15px] font-semibold text-gray-600 hover:text-[#0a0a0a] transition-colors whitespace-nowrap cursor-pointer bg-transparent border-none p-0"
+                >
+                  Pricing
+                </button>
               </div>
 
               {/* Right Actions */}
-              <div className="flex items-center gap-0.5 shrink-0 ml-1">
-                <Link to="/login" className="hidden sm:flex items-center px-2.5 py-1.5 text-[13px] font-medium text-gray-500 rounded-full whitespace-nowrap leading-none transition-colors duration-200 hover:bg-gray-100/50 hover:text-gray-700" style={{ textDecoration: 'none' }}>
+              <div className="hidden md:flex items-center gap-4 shrink-0 ml-8">
+                <Link to="/login" className="text-[15px] font-semibold text-gray-600 hover:text-[#0a0a0a] transition-colors whitespace-nowrap" style={{ textDecoration: 'none' }}>
                   Log in
                 </Link>
 
-                {/* Join for free — collapses width when hidden */}
+                {/* Join for free — pops in on scroll */}
                 <motion.div
                   animate={{
-                    width: scrolled ? 108 : 0,
+                    width: scrolled ? 130 : 0,
                     opacity: scrolled ? 1 : 0,
-                    marginLeft: scrolled ? 4 : 0,
                   }}
                   transition={{ type: 'spring', stiffness: 400, damping: 28 }}
                   className="overflow-hidden"
@@ -586,40 +716,39 @@ export default function LandingPage() {
                 >
                   <Link
                     to="/signup"
-                    className="inline-flex items-center justify-center rounded-full bg-[#0a0a0a] text-[13px] font-semibold text-white whitespace-nowrap leading-none hover:bg-[#1a1a1a] active:scale-95 transition-all duration-150"
-                    style={{ padding: '7px 14px', letterSpacing: '-0.01em' }}
+                    className="inline-flex items-center justify-center rounded-full bg-[#0a0a0a] text-[15px] font-semibold text-white whitespace-nowrap leading-none hover:bg-[#1a1a1a] active:scale-95 transition-all duration-150"
+                    style={{ padding: '12px 28px', letterSpacing: '-0.01em' }}
                   >
                     Join for free
                   </Link>
                 </motion.div>
-
-                {/* Hamburger (mobile only) */}
-                <button
-                  className="flex items-center justify-center rounded-lg p-1.5 text-gray-500 hover:bg-gray-100/50 hover:text-gray-700 active:scale-95 md:hidden transition-all duration-150 ml-0.5"
-                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                  aria-label="Toggle menu"
-                >
-                  {mobileMenuOpen ? (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6L18 18" /></svg>
-                  ) : (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 6H20M4 12H20M4 18H20" /></svg>
-                  )}
-                </button>
               </div>
+
+              {/* Hamburger (mobile only) */}
+              <button
+                className="flex items-center justify-center rounded-lg p-2 text-gray-500 hover:bg-gray-100/50 hover:text-gray-700 active:scale-95 md:hidden transition-all duration-150 ml-2"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                aria-label="Toggle menu"
+              >
+                {mobileMenuOpen ? (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6L18 18" /></svg>
+                ) : (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 6H20M4 12H20M4 18H20" /></svg>
+                )}
+              </button>
             </div>
           </motion.div>
         </nav>
 
         {/* Mobile dropdown */}
         {mobileMenuOpen && (
-          <div className="fixed top-[72px] left-4 right-4 z-40 rounded-2xl border border-gray-200 bg-white/95 backdrop-blur-xl px-5 pb-5 pt-3 shadow-[0_8px_32px_rgba(0,0,0,0.08)] md:hidden">
-            <div className="flex flex-col gap-0.5">
-              <a href="#features" onClick={() => setMobileMenuOpen(false)} className="rounded-xl px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors">Features</a>
-              <a href="#pricing" onClick={() => setMobileMenuOpen(false)} className="rounded-xl px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors">Pricing</a>
-              <a href="#testimonials" onClick={() => setMobileMenuOpen(false)} className="rounded-xl px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors">Reviews</a>
-              <div className="mt-2 flex flex-col gap-2 border-t border-gray-100 pt-3">
-                <Link to="/login" onClick={() => setMobileMenuOpen(false)} className="rounded-xl border border-gray-200 px-4 py-2.5 text-center text-sm font-semibold text-gray-700 active:bg-gray-50 transition-colors">Log in</Link>
-                <Link to="/signup" onClick={() => setMobileMenuOpen(false)} className="rounded-xl bg-[#0a0a0a] px-4 py-2.5 text-center text-sm font-semibold text-white active:bg-[#1a1a1a] transition-colors">Join for free</Link>
+          <div className="fixed top-[78px] left-4 right-4 z-40 rounded-2xl border border-gray-200 bg-white/95 backdrop-blur-xl px-6 pb-6 pt-4 shadow-[0_8px_32px_rgba(0,0,0,0.08)] md:hidden">
+            <div className="flex flex-col gap-1">
+              <a href="#features" onClick={() => setMobileMenuOpen(false)} className="rounded-xl px-5 py-3.5 text-base font-semibold text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors">Features</a>
+              <a href="#pricing" onClick={() => setMobileMenuOpen(false)} className="rounded-xl px-5 py-3.5 text-base font-semibold text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors">Pricing</a>
+              <div className="mt-2 flex flex-col gap-2.5 border-t border-gray-100 pt-4">
+                <Link to="/login" onClick={() => setMobileMenuOpen(false)} className="rounded-xl border border-gray-200 px-5 py-3 text-center text-base font-semibold text-gray-700 active:bg-gray-50 transition-colors">Log in</Link>
+                <Link to="/signup" onClick={() => setMobileMenuOpen(false)} className="rounded-xl bg-[#0a0a0a] px-5 py-3 text-center text-base font-semibold text-white active:bg-[#1a1a1a] transition-colors">Join for free</Link>
               </div>
             </div>
           </div>
@@ -723,14 +852,24 @@ export default function LandingPage() {
             </h2>
           </div>
           <div className="mt-8 flex justify-center">
-            <div className="inline-flex items-center gap-1 bg-gray-100 rounded-full p-1">
+            <div className="relative inline-flex items-center gap-1 bg-gray-100 rounded-full p-1">
+              {/* Sliding indicator — bottom to top */}
+              <motion.div
+                className="absolute bottom-1 h-0.5 bg-[#0a0a0a] rounded-full"
+                animate={{
+                  x: tab === 0 ? 0 : tab === 1 ? 64 : tab === 2 ? 128 : 192,
+                  width: 48,
+                }}
+                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+              />
               {tabs.map((t, idx) => (
                 <button
                   key={t}
                   onClick={() => setTab(idx)}
-                  className={`rounded-full px-4 py-2 text-sm font-semibold transition-all duration-250 whitespace-nowrap ${
-                    tab === idx ? 'bg-white text-[#0a0a0a] shadow-sm' : 'text-gray-500 hover:text-[#0a0a0a]'
+                  className={`relative z-10 rounded-full px-4 py-2 text-sm font-semibold transition-all duration-250 whitespace-nowrap ${
+                    tab === idx ? 'text-[#0a0a0a]' : 'text-gray-500 hover:text-[#0a0a0a]'
                   }`}
+                  style={{ width: '64px' }}
                 >
                   {t}
                 </button>
@@ -769,7 +908,7 @@ export default function LandingPage() {
         </div>
 
         {/* ══ PRICING ══════════════════════════════════════ */}
-        <Section id="pricing" ref={pricingRef} className="px-6 py-24 md:px-12 lg:px-24">
+        <Section id="pricing" className="px-6 py-24 md:px-12 lg:px-24">
           <div className="mx-auto max-w-[700px] text-center">
             <h2 className="text-4xl md:text-5xl font-extrabold leading-[1.08] tracking-[-0.035em] text-[#0a0a0a]">
               Pricing that makes sense in naira and in logic.
@@ -821,7 +960,7 @@ export default function LandingPage() {
         </Section>
 
         {/* ══ TESTIMONIALS ═════════════════════════════════ */}
-        <Section id="testimonials" ref={testimonialsRef} className="bg-gray-50 px-6 py-24 md:px-12 lg:px-24">
+        <Section id="testimonials" className="bg-gray-50 px-6 py-24 md:px-12 lg:px-24">
           <div className="mx-auto max-w-6xl text-center">
             <h2 className="text-4xl md:text-5xl font-extrabold leading-[1.08] tracking-[-0.035em] text-[#0a0a0a]">
               What teams said after their first month live.
@@ -862,34 +1001,46 @@ export default function LandingPage() {
               <Link to="/signup" className="rounded-full bg-green-500 px-8 py-3.5 text-base font-semibold text-white hover:bg-green-400 transition-colors whitespace-nowrap">
                 Start free — no card needed
               </Link>
-              <a href="#pricing" className="inline-flex items-center gap-2 rounded-full border border-white/20 px-8 py-3.5 text-base font-medium text-white hover:bg-white/10 transition-colors whitespace-nowrap">
-                View pricing <IconsaxIcon icon="arrow-right" className="text-gray-400" />
+              <a
+                href="#pricing"
+                className="inline-flex items-center gap-2 rounded-full border border-white/20 px-8 py-3.5 text-base font-medium text-white transition-all duration-300 whitespace-nowrap hover:border-white/10 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-1px_0_rgba(0,0,0,0.2),0_2px_8px_rgba(0,0,0,0.3)] hover:bg-[linear-gradient(145deg,#2a2a2a_0%,#1a1a1a_50%,#111111_100%)]"
+                style={{
+                  background: 'transparent',
+                }}
+              >
+                View pricing <IconsaxIcon icon="arrow-right" className="text-gray-400 transition-colors" />
               </a>
             </div>
           </div>
         </section>
 
-        {/* App grid marquee — 3 rows, different speeds */}
+        {/* Feature marquee — 3 rows, different speeds, dark glossy badges */}
         <div className="bg-[#0a0a0a] overflow-hidden pb-12">
           {[0, 1, 2].map((row) => (
             <div
               key={row}
               className={`flex gap-3 py-1.5 ${
-                row === 0 ? 'animate-[scroll-left_40s_linear_infinite]' :
-                row === 1 ? 'animate-[scroll-right_35s_linear_infinite]' :
-                'animate-[scroll-left_45s_linear_infinite]'
+                row === 0 ? 'animate-[scroll-left_50s_linear_infinite]' :
+                row === 1 ? 'animate-[scroll-right_42s_linear_infinite]' :
+                'animate-[scroll-left_55s_linear_infinite]'
               }`}
               style={{ width: 'max-content' }}
             >
-              {[...appGridItems, ...appGridItems, ...appGridItems].map((app, i) => (
-                <div
-                  key={`${row}-${i}`}
-                  className="flex items-center gap-2 bg-white/[0.04] border border-white/[0.06] rounded-lg px-3 py-2 flex-shrink-0"
-                >
-                  <div className="w-6 h-6 rounded flex-shrink-0" style={{ backgroundColor: app.color }} />
-                  <span className="text-xs font-medium text-gray-400 whitespace-nowrap">{app.name}</span>
-                </div>
-              ))}
+              {[...featureMarqueeItems, ...featureMarqueeItems, ...featureMarqueeItems].map((item, i) => {
+                const iconColor = iconTints[(i + row) % featureMarqueeItems.length] || '#a3a3a3'
+                return (
+                  <div
+                    key={`${row}-${i}`}
+                    className="flex items-center gap-2 px-4 py-2 rounded-full flex-shrink-0 select-none"
+                    style={{
+                      ...badgeBaseStyle,
+                    }}
+                  >
+                    <span style={{ color: iconColor }} className="flex-shrink-0">{item.icon}</span>
+                    <span className="text-xs font-medium whitespace-nowrap">{item.name}</span>
+                  </div>
+                )
+              })}
             </div>
           ))}
         </div>
