@@ -222,16 +222,14 @@ export default function VerifyPage() {
             )}
           </AnimatePresence>
 
-          {/* OTP Input */}
-          <div className="py-4">
-            <div className="flex justify-center">
-              <AnimatedOTPInput
-                value={code}
-                onChange={setCode}
-                onComplete={handleOTPComplete}
-                maxLength={6}
-              />
-            </div>
+          {/* OTP Input — centered module */}
+          <div className="py-6 flex flex-col items-center justify-center">
+            <AnimatedOTPInput
+              value={code}
+              onChange={setCode}
+              onComplete={handleOTPComplete}
+              maxLength={6}
+            />
           </div>
 
           {/* Loading state */}
