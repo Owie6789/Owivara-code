@@ -631,8 +631,22 @@ export default function LandingPage() {
   const [tab, setTab] = useState(0)
   const [scrolled, setScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [footerInView, setFooterInView] = useState(false)
+  const footerRef = useRef<HTMLElement>(null)
   const tabs = ['All', 'Setup', 'AI', 'Monitoring', 'Commands', 'Media']
   const featuresRef = useRef<HTMLElement>(null)
+
+  // Track footer visibility to toggle gradual blur
+  useEffect(() => {
+    const footer = footerRef.current
+    if (!footer) return
+    const observer = new IntersectionObserver(
+      ([entry]) => setFooterInView(entry.isIntersecting),
+      { threshold: 0.05, rootMargin: '0px 0px -80px 0px' }
+    )
+    observer.observe(footer)
+    return () => observer.disconnect()
+  }, [])
 
   // Centralized scroll helper — accounts for sticky nav offset
   const scrollToSection = useCallback((sectionId: string) => {
@@ -687,13 +701,13 @@ export default function LandingPage() {
               boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 16px rgba(0, 0, 0, 0.06)',
             }}
           >
-            <div className="flex items-center w-full rounded-full" style={{ minHeight: '60px', paddingLeft: '32px', paddingRight: '32px' }}>
+            <div className="flex items-center w-full rounded-full" style={{ minHeight: '60px', paddingLeft: '48px', paddingRight: '48px' }}>
               {/* Logo — bigger text like Mobbin */}
-              <Link to="/" className="flex items-center gap-2.5 shrink-0 mr-8 group" aria-label="Owivara home">
-                <div className="w-8 h-8 rounded-lg overflow-hidden transition-transform duration-200 group-hover:scale-105 group-active:scale-95">
+              <Link to="/" className="flex items-center gap-3 shrink-0 mr-8 group" aria-label="Owivara home">
+                <div className="w-10 h-10 rounded-lg overflow-hidden transition-transform duration-200 group-hover:scale-105 group-active:scale-95">
                   <img src="/logo.svg" alt="Owivara" className="w-full h-full object-cover" />
                 </div>
-                <span className="text-[18px] font-bold tracking-[-0.02em] text-[#0a0a0a] leading-none whitespace-nowrap">Owivara</span>
+                <span className="text-[20px] font-bold tracking-[-0.02em] text-[#0a0a0a] leading-none whitespace-nowrap">Owivara</span>
               </Link>
 
               {/* Nav Links — plain text, no indicator pill */}
@@ -898,27 +912,41 @@ export default function LandingPage() {
               ))}
             </div>
           </div>
-          <div className="mt-12 relative overflow-hidden">
-            <div className="absolute inset-y-0 left-0 w-40 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none" />
-            <div className="absolute inset-y-0 right-0 w-40 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none" />
-            <div className="flex gap-6 overflow-x-auto pb-4 scrollbar-hide" style={{ scrollBehavior: 'smooth' }}>
-              {filteredFeatures.map((f, i) => (
-                <motion.div
-                  key={f.title}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.08 }}
-                  className="w-72 flex-shrink-0 rounded-2xl bg-gray-100 overflow-hidden shadow-md hover:shadow-lg hover:-translate-y-1.5 transition-all duration-250"
-                >
-                  <div className="aspect-[4/3] bg-gray-200 flex items-center justify-center p-6">
-                    <IconsaxIcon icon={f.icon} className="text-gray-400 w-16 h-16" />
-                  </div>
-                  <div className="p-5 text-center">
-                    <h3 className="text-[17px] font-bold tracking-[-0.02em] text-[#0a0a0a]">{f.title}</h3>
-                    <p className="mt-2 text-sm text-gray-500 leading-relaxed">{f.description}</p>
-                  </div>
-                </motion.div>
-              ))}
+          <div className="mt-12">
+            {/* Feature cards marquee — infinite horizontal loop with edge fade */}
+            <div className="relative overflow-hidden">
+              {/* Left edge fade */}
+              <div className="absolute inset-y-0 left-0 w-32 md:w-48 z-10 pointer-events-none bg-gradient-to-r from-white via-white/90 to-transparent" />
+              {/* Right edge fade */}
+              <div className="absolute inset-y-0 right-0 w-32 md:w-48 z-10 pointer-events-none bg-gradient-to-l from-white via-white/90 to-transparent" />
+              
+              {/* Marquee track */}
+              <div
+                className="flex gap-5"
+                style={{
+                  width: 'max-content',
+                  animation: 'marquee-scroll 60s linear infinite',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.animationPlayState = 'paused')}
+                onMouseLeave={(e) => (e.currentTarget.style.animationPlayState = 'running')}
+              >
+                {/* Triplicate for seamless loop */}
+                {[...filteredFeatures, ...filteredFeatures, ...filteredFeatures].map((f, i) => (
+                  <motion.div
+                    key={`${f.title}-${i}`}
+                    initial={false}
+                    className="w-72 flex-shrink-0 rounded-2xl bg-gray-100 overflow-hidden shadow-md hover:shadow-xl hover:-translate-y-1.5 transition-all duration-250 cursor-pointer"
+                  >
+                    <div className="aspect-[4/3] bg-gray-200 flex items-center justify-center p-6">
+                      <IconsaxIcon icon={f.icon} className="text-gray-400 w-16 h-16" />
+                    </div>
+                    <div className="p-5 text-center">
+                      <h3 className="text-[17px] font-bold tracking-[-0.02em] text-[#0a0a0a]">{f.title}</h3>
+                      <p className="mt-2 text-sm text-gray-500 leading-relaxed">{f.description}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
             </div>
           </div>
         </Section>
@@ -1128,11 +1156,14 @@ export default function LandingPage() {
 
         </div> {/* End main content wrapper */}
 
-        {/* Gradual blur — covers entire page, sticky to footer top, hooks back on scroll up */}
-        <div className="relative bg-[#0a0a0a] sticky bottom-0 z-[100]">
+        {/* Fixed bottom gradual blur — visible while scrolling, hides when footer enters viewport */}
+        <div
+          className="fixed bottom-0 left-0 right-0 z-[100] pointer-events-none transition-opacity duration-500"
+          style={{ opacity: footerInView ? 0 : 1 }}
+        >
           <GradualBlur
             position="top"
-            height="12rem"
+            height="10rem"
             strength={4}
             divCount={10}
             curve="bezier"
@@ -1142,7 +1173,7 @@ export default function LandingPage() {
         </div>
 
         {/* ══ FOOTER — Separated with Top Border ═════════════ */}
-        <footer className="bg-[#0a0a0a] px-6 pt-16 pb-10 md:px-12 lg:px-24 border-t border-white/10">
+        <footer ref={footerRef} className="bg-[#0a0a0a] px-6 pt-16 pb-10 md:px-12 lg:px-24 border-t border-white/10">
           <div className="mx-auto max-w-6xl">
             <div className="grid gap-12 md:grid-cols-[1.5fr_1fr_1fr]">
               {/* Brand Column */}
