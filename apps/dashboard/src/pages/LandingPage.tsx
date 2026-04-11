@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, useMotionValue, useTransform } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
 import { Link } from 'react-router-dom'
 import SEOHead from '../components/SEOHead'
+import GradualBlur from '../components/ui/GradualBlur'
 
 // ─── Iconsax SVG Icon Components ────────────────────────────────────────────
 const IconsaxIcon = ({
@@ -233,24 +234,26 @@ function ScrollJackedStats() {
   const containerRef = useRef<HTMLDivElement>(null)
   const iconsRef = useRef<HTMLDivElement>(null)
 
-  // Manual scroll progress — maps 0→1 across the FULL scroll distance of 350vh
-  // NOT using useScroll because it fires on container enter/exit, not scroll-through
+  // Manual scroll progress — maps 0→1 across the FULL scroll distance of 250vh
   const scrollProgress = useMotionValue(0)
 
   useEffect(() => {
     const handleScroll = () => {
       if (!containerRef.current) return
       const rect = containerRef.current.getBoundingClientRect()
-      const containerHeight = containerRef.current.offsetHeight
       const viewportHeight = window.innerHeight
-      // progress = 0 when container top is at viewport bottom (just entering)
-      // progress = 1 when container bottom is at viewport top (just leaving)
-      const scrolled = viewportHeight - rect.top
-      const totalScroll = containerHeight + viewportHeight
-      scrollProgress.set(Math.max(0, Math.min(1, scrolled / totalScroll)))
+
+      let progress = 0
+      if (rect.top <= 0) {
+        progress = Math.min(1, Math.abs(rect.top) / (rect.height - viewportHeight))
+      } else if (rect.bottom <= viewportHeight) {
+        progress = rect.bottom < 0 ? 1 : 0
+      }
+
+      scrollProgress.set(progress)
     }
     window.addEventListener('scroll', handleScroll, { passive: true })
-    handleScroll() // initial
+    handleScroll()
     return () => window.removeEventListener('scroll', handleScroll)
   }, [scrollProgress])
 
@@ -278,31 +281,37 @@ function ScrollJackedStats() {
     return () => observer.disconnect()
   }, [])
 
-  // Map scroll progress (0→1) to which stat is active
-  // 350vh = ~3.5x viewport scroll. Each stat gets ~1 viewport scroll to transition.
-  // Extended ranges so each stat stays visible longer
-  const stat0Opacity = useTransform(scrollProgress, [0, 0.03, 0.20, 0.33], [0, 1, 1, 0])
-  const stat0Y = useTransform(scrollProgress, [0, 0.03, 0.20, 0.33], [60, 0, 0, -60])
-  const stat0Scale = useTransform(scrollProgress, [0, 0.03, 0.20, 0.33], [0.9, 1, 1, 0.9])
+  // OPTIMIZED STAT TRANSITIONS — Each stat visible for ~40% with 5% crossfade zones
 
-  const stat1Opacity = useTransform(scrollProgress, [0.25, 0.30, 0.45, 0.60, 0.68], [0, 1, 1, 1, 0])
-  const stat1Y = useTransform(scrollProgress, [0.25, 0.30, 0.45, 0.60, 0.68], [60, 0, 0, 0, -60])
-  const stat1Scale = useTransform(scrollProgress, [0.25, 0.30, 0.45, 0.60, 0.68], [0.9, 1, 1, 1, 0.9])
+  // Stat 0: Bots (0% → 35%)
+  const stat0Opacity = useTransform(scrollProgress, [0, 0.02, 0.30, 0.35], [0, 1, 1, 0])
+  const stat0Y = useTransform(scrollProgress, [0, 0.02, 0.30, 0.35], [30, 0, 0, -30])
+  const stat0Scale = useTransform(scrollProgress, [0, 0.02, 0.30, 0.35], [0.94, 1, 1, 0.94])
 
-  const stat2Opacity = useTransform(scrollProgress, [0.60, 0.65, 0.75, 0.95], [0, 1, 1, 1])
-  const stat2Y = useTransform(scrollProgress, [0.60, 0.65, 0.75, 0.95], [60, 0, 0, 0])
-  const stat2Scale = useTransform(scrollProgress, [0.60, 0.65, 0.75, 0.95], [0.9, 1, 1, 1])
+  // Stat 1: Messages (32% → 67%)
+  const stat1Opacity = useTransform(scrollProgress, [0.32, 0.37, 0.62, 0.67], [0, 1, 1, 0])
+  const stat1Y = useTransform(scrollProgress, [0.32, 0.37, 0.62, 0.67], [30, 0, 0, -30])
+  const stat1Scale = useTransform(scrollProgress, [0.32, 0.37, 0.62, 0.67], [0.94, 1, 1, 0.94])
 
-  // Progress dots — wider active zones
-  const dot0 = useTransform(scrollProgress, [0, 0.10, 0.30], [0.8, 1.4, 0.8])
-  const dot0Color = useTransform(scrollProgress, [0, 0.08, 0.30], ['#d1d5db', '#0a0a0a', '#d1d5db'])
-  const dot1 = useTransform(scrollProgress, [0.25, 0.45, 0.65], [0.8, 1.4, 0.8])
-  const dot1Color = useTransform(scrollProgress, [0.25, 0.42, 0.65], ['#d1d5db', '#0a0a0a', '#d1d5db'])
-  const dot2 = useTransform(scrollProgress, [0.58, 0.72, 0.92], [0.8, 1.4, 0.8])
-  const dot2Color = useTransform(scrollProgress, [0.58, 0.70, 0.92], ['#d1d5db', '#0a0a0a', '#d1d5db'])
+  // Stat 2: Businesses (64% → 100%)
+  const stat2Opacity = useTransform(scrollProgress, [0.64, 0.69, 0.98, 1], [0, 1, 1, 1])
+  const stat2Y = useTransform(scrollProgress, [0.64, 0.69, 0.98, 1], [30, 0, 0, 0])
+  const stat2Scale = useTransform(scrollProgress, [0.64, 0.69, 0.98, 1], [0.94, 1, 1, 1])
+
+  // Progress dots — active when corresponding stat is centered
+  const dot0Scale = useTransform(scrollProgress, [0, 0.15, 0.35], [0.8, 1.5, 0.8])
+  const dot0Color = useTransform(scrollProgress, [0, 0.15, 0.35], ['#d1d5db', '#0a0a0a', '#d1d5db'])
+
+  const dot1Scale = useTransform(scrollProgress, [0.32, 0.50, 0.67], [0.8, 1.5, 0.8])
+  const dot1Color = useTransform(scrollProgress, [0.32, 0.50, 0.67], ['#d1d5db', '#0a0a0a', '#d1d5db'])
+
+  const dot2Scale = useTransform(scrollProgress, [0.64, 0.82, 1], [0.8, 1.5, 0.8])
+  const dot2Color = useTransform(scrollProgress, [0.64, 0.82, 1], ['#d1d5db', '#0a0a0a', '#d1d5db'])
 
   return (
-    <div ref={containerRef} style={{ height: '350vh' }}>
+    // Reduced to 250vh for tighter, more responsive scroll control
+    <div ref={containerRef} style={{ height: '250vh', position: 'relative' }}>
+      {/* Sticky container — pins in place while scrolling */}
       <div className="sticky top-0 h-screen flex flex-col items-center justify-center bg-white">
         {/* Floating icons background */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden" ref={iconsRef}>
@@ -326,51 +335,51 @@ function ScrollJackedStats() {
           ))}
         </div>
 
-        {/* Content - above floating icons */}
-        <div className="relative z-10 text-center px-6">
+        {/* Content layer — stats that crossfade */}
+        <div className="relative z-10 text-center px-6 w-full max-w-4xl mx-auto">
           <p className="text-sm font-medium text-gray-400 mb-12">A growing library of</p>
 
-          {/* Stats - all layered on top of each other, revealed by scroll */}
-          <div className="relative w-full max-w-lg mx-auto h-48 flex items-center justify-center">
+          {/* Stats container — fixed height prevents layout shift */}
+          <div className="relative w-full mx-auto" style={{ height: '280px' }}>
             {/* Stat 0: Bots */}
             <motion.div
               className="absolute inset-0 flex flex-col items-center justify-center"
-              style={{ opacity: stat0Opacity, y: stat0Y, scale: stat0Scale }}
+              style={{ opacity: stat0Opacity, y: stat0Y, scale: stat0Scale, willChange: 'transform, opacity' }}
             >
-              <p className="text-5xl md:text-7xl lg:text-8xl font-extrabold text-[#0a0a0a] tracking-[-0.04em] leading-tight tabular-nums">
+              <p className="text-6xl md:text-7xl lg:text-8xl font-extrabold text-[#0a0a0a] tracking-[-0.04em] leading-none tabular-nums">
                 2,400+
               </p>
-              <p className="mt-3 text-sm md:text-base text-gray-500 font-medium">bots live and running</p>
+              <p className="mt-5 text-base md:text-lg text-gray-500 font-medium">bots live and running</p>
             </motion.div>
 
             {/* Stat 1: Messages */}
             <motion.div
               className="absolute inset-0 flex flex-col items-center justify-center"
-              style={{ opacity: stat1Opacity, y: stat1Y, scale: stat1Scale }}
+              style={{ opacity: stat1Opacity, y: stat1Y, scale: stat1Scale, willChange: 'transform, opacity' }}
             >
-              <p className="text-5xl md:text-7xl lg:text-8xl font-extrabold text-[#0a0a0a] tracking-[-0.04em] leading-tight tabular-nums">
+              <p className="text-6xl md:text-7xl lg:text-8xl font-extrabold text-[#0a0a0a] tracking-[-0.04em] leading-none tabular-nums">
                 1.2M+
               </p>
-              <p className="mt-3 text-sm md:text-base text-gray-500 font-medium">messages handled</p>
+              <p className="mt-5 text-base md:text-lg text-gray-500 font-medium">messages handled</p>
             </motion.div>
 
             {/* Stat 2: Businesses */}
             <motion.div
               className="absolute inset-0 flex flex-col items-center justify-center"
-              style={{ opacity: stat2Opacity, y: stat2Y, scale: stat2Scale }}
+              style={{ opacity: stat2Opacity, y: stat2Y, scale: stat2Scale, willChange: 'transform, opacity' }}
             >
-              <p className="text-5xl md:text-7xl lg:text-8xl font-extrabold text-[#0a0a0a] tracking-[-0.04em] leading-tight tabular-nums">
+              <p className="text-6xl md:text-7xl lg:text-8xl font-extrabold text-[#0a0a0a] tracking-[-0.04em] leading-none tabular-nums">
                 11,400+
               </p>
-              <p className="mt-3 text-sm md:text-base text-gray-500 font-medium">businesses using Owivara</p>
+              <p className="mt-5 text-base md:text-lg text-gray-500 font-medium">businesses using Owivara</p>
             </motion.div>
           </div>
 
           {/* Progress dots */}
-          <div className="flex gap-2 justify-center mt-10">
-            <motion.div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: dot0Color, scale: dot0 }} />
-            <motion.div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: dot1Color, scale: dot1 }} />
-            <motion.div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: dot2Color, scale: dot2 }} />
+          <div className="flex gap-3 justify-center mt-14">
+            <motion.div className="w-2.5 h-2.5 rounded-full transition-colors duration-300" style={{ backgroundColor: dot0Color, scale: dot0Scale }} />
+            <motion.div className="w-2.5 h-2.5 rounded-full transition-colors duration-300" style={{ backgroundColor: dot1Color, scale: dot1Scale }} />
+            <motion.div className="w-2.5 h-2.5 rounded-full transition-colors duration-300" style={{ backgroundColor: dot2Color, scale: dot2Scale }} />
           </div>
         </div>
       </div>
@@ -616,6 +625,17 @@ export default function LandingPage() {
   const tabs = ['All', 'Setup', 'AI', 'Monitoring']
   const featuresRef = useRef<HTMLElement>(null)
 
+  // Centralized scroll helper — accounts for sticky nav offset
+  const scrollToSection = useCallback((sectionId: string) => {
+    const element = document.getElementById(sectionId)
+    if (!element) return
+    const navHeight = 100
+    const elementPosition = element.getBoundingClientRect().top
+    const offsetPosition = elementPosition + window.scrollY - navHeight
+    window.scrollTo({ top: offsetPosition, behavior: 'smooth' })
+    setMobileMenuOpen(false)
+  }, [])
+
   // Scroll detection for navbar expand
   useEffect(() => {
     const handleScroll = () => {
@@ -646,7 +666,7 @@ export default function LandingPage() {
           <motion.div
             className="pointer-events-all relative flex items-center rounded-full overflow-hidden"
             animate={{
-              maxWidth: scrolled ? 860 : 520,
+              maxWidth: scrolled ? 920 : 520,
             }}
             transition={{ type: 'spring', stiffness: 300, damping: 25 }}
             style={{
@@ -670,28 +690,14 @@ export default function LandingPage() {
               <div className="hidden md:flex items-center gap-8 shrink-0">
                 <button
                   type="button"
-                  onClick={() => {
-                    const el = document.getElementById('features')
-                    if (el) {
-                      const navHeight = 80
-                      const top = el.getBoundingClientRect().top + window.scrollY - navHeight
-                      window.scrollTo({ top, behavior: 'smooth' })
-                    }
-                  }}
+                  onClick={() => scrollToSection('features')}
                   className="text-[15px] font-semibold text-gray-600 hover:text-[#0a0a0a] transition-colors whitespace-nowrap cursor-pointer bg-transparent border-none p-0"
                 >
                   Features
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    const el = document.getElementById('pricing')
-                    if (el) {
-                      const navHeight = 80
-                      const top = el.getBoundingClientRect().top + window.scrollY - navHeight
-                      window.scrollTo({ top, behavior: 'smooth' })
-                    }
-                  }}
+                  onClick={() => scrollToSection('pricing')}
                   className="text-[15px] font-semibold text-gray-600 hover:text-[#0a0a0a] transition-colors whitespace-nowrap cursor-pointer bg-transparent border-none p-0"
                 >
                   Pricing
@@ -744,8 +750,18 @@ export default function LandingPage() {
         {mobileMenuOpen && (
           <div className="fixed top-[78px] left-4 right-4 z-40 rounded-2xl border border-gray-200 bg-white/95 backdrop-blur-xl px-6 pb-6 pt-4 shadow-[0_8px_32px_rgba(0,0,0,0.08)] md:hidden">
             <div className="flex flex-col gap-1">
-              <a href="#features" onClick={() => setMobileMenuOpen(false)} className="rounded-xl px-5 py-3.5 text-base font-semibold text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors">Features</a>
-              <a href="#pricing" onClick={() => setMobileMenuOpen(false)} className="rounded-xl px-5 py-3.5 text-base font-semibold text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors">Pricing</a>
+              <button 
+                onClick={() => scrollToSection('features')} 
+                className="rounded-xl px-5 py-3.5 text-base font-semibold text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors text-left w-full bg-transparent border-none cursor-pointer"
+              >
+                Features
+              </button>
+              <button 
+                onClick={() => scrollToSection('pricing')} 
+                className="rounded-xl px-5 py-3.5 text-base font-semibold text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors text-left w-full bg-transparent border-none cursor-pointer"
+              >
+                Pricing
+              </button>
               <div className="mt-2 flex flex-col gap-2.5 border-t border-gray-100 pt-4">
                 <Link to="/login" onClick={() => setMobileMenuOpen(false)} className="rounded-xl border border-gray-200 px-5 py-3 text-center text-base font-semibold text-gray-700 active:bg-gray-50 transition-colors">Log in</Link>
                 <Link to="/signup" onClick={() => setMobileMenuOpen(false)} className="rounded-xl bg-[#0a0a0a] px-5 py-3 text-center text-base font-semibold text-white active:bg-[#1a1a1a] transition-colors">Join for free</Link>
@@ -782,10 +798,13 @@ export default function LandingPage() {
             <Link to="/signup" className="inline-flex items-center justify-center rounded-full bg-[#0a0a0a] px-6 py-3 text-[15px] font-semibold text-white transition-all duration-150 hover:bg-[#1a1a1a] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(0,0,0,0.18)] active:translate-y-0 active:scale-[0.98] whitespace-nowrap">
               Join for free
             </Link>
-            <a href="#pricing" className="inline-flex items-center justify-center gap-1.5 rounded-full border border-gray-200 bg-white px-5 py-3 text-[15px] font-semibold text-[#0a0a0a] transition-all duration-150 hover:bg-gray-50 hover:border-gray-300 hover:-translate-y-0.5 hover:shadow-sm active:translate-y-0 active:scale-[0.98] whitespace-nowrap">
+            <button
+              onClick={() => scrollToSection('pricing')}
+              className="inline-flex items-center justify-center gap-1.5 rounded-full border border-gray-200 bg-white px-5 py-3 text-[15px] font-semibold text-[#0a0a0a] transition-all duration-150 hover:bg-gray-50 hover:border-gray-300 hover:-translate-y-0.5 hover:shadow-sm active:translate-y-0 active:scale-[0.98] whitespace-nowrap"
+            >
               See our plans
               <IconsaxIcon icon="arrow-right" className="text-gray-500" />
-            </a>
+            </button>
           </motion.div>
         </div>
 
@@ -848,28 +867,18 @@ export default function LandingPage() {
         <Section id="features" ref={featuresRef} className="px-6 py-24 md:px-12 lg:px-24 text-center">
           <div className="mx-auto max-w-[700px]">
             <h2 className="text-4xl md:text-5xl font-extrabold leading-[1.08] tracking-[-0.035em] text-[#0a0a0a]">
-              From inspiration to creation
+              Some of Owivara's features
             </h2>
           </div>
           <div className="mt-8 flex justify-center">
-            <div className="relative inline-flex items-center gap-1 bg-gray-100 rounded-full p-1">
-              {/* Sliding indicator — bottom to top */}
-              <motion.div
-                className="absolute bottom-1 h-0.5 bg-[#0a0a0a] rounded-full"
-                animate={{
-                  x: tab === 0 ? 0 : tab === 1 ? 64 : tab === 2 ? 128 : 192,
-                  width: 48,
-                }}
-                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-              />
+            <div className="inline-flex items-center gap-1 bg-gray-100 rounded-full p-1">
               {tabs.map((t, idx) => (
                 <button
                   key={t}
                   onClick={() => setTab(idx)}
-                  className={`relative z-10 rounded-full px-4 py-2 text-sm font-semibold transition-all duration-250 whitespace-nowrap ${
-                    tab === idx ? 'text-[#0a0a0a]' : 'text-gray-500 hover:text-[#0a0a0a]'
+                  className={`rounded-full px-4 py-2 text-sm font-semibold transition-all duration-250 whitespace-nowrap ${
+                    tab === idx ? 'bg-white text-[#0a0a0a] shadow-sm' : 'text-gray-500 hover:text-[#0a0a0a]'
                   }`}
-                  style={{ width: '64px' }}
                 >
                   {t}
                 </button>
@@ -998,28 +1007,50 @@ export default function LandingPage() {
             </h2>
             <p className="mt-5 text-lg text-gray-400">Use Owivara free for as long as you like. No credit card required.</p>
             <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-              {/* Green CTA with BorderGlow outer effect */}
-              <div className="relative group">
-                {/* Outer glow layer — activates on hover */}
-                <div
-                  className="absolute rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+              {/* Green CTA with BorderGlow effect */}
+              <div className="relative group" style={{ borderRadius: '9999px' }}>
+                {/* Outer glow — conic-gradient mask, fades in on hover */}
+                <span
+                  className="absolute pointer-events-none rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700"
                   style={{
-                    inset: '-6px',
-                    boxShadow: '0 0 20px rgba(34,197,94,0.3), 0 0 60px rgba(34,197,94,0.15), inset 0 0 20px rgba(34,197,94,0.1)',
-                    borderRadius: '9999px',
+                    inset: '-8px',
+                    maskImage: 'conic-gradient(from 0deg at center, rgba(34,197,94,0.8) 0%, rgba(34,197,94,0) 25%, rgba(34,197,94,0) 75%, rgba(34,197,94,0.8) 100%)',
+                    WebkitMaskImage: 'conic-gradient(from 0deg at center, rgba(34,197,94,0.8) 0%, rgba(34,197,94,0) 25%, rgba(34,197,94,0) 75%, rgba(34,197,94,0.8) 100%)',
+                    mixBlendMode: 'plus-lighter',
+                    transition: 'opacity 0.7s ease-out',
+                  }}
+                >
+                  <span
+                    className="absolute rounded-full"
+                    style={{
+                      inset: '8px',
+                      boxShadow: '0 0 20px rgba(34,197,94,0.4), 0 0 50px rgba(34,197,94,0.2), 0 0 80px rgba(34,197,94,0.1)',
+                    }}
+                  />
+                </span>
+
+                {/* Border glow layer — mesh gradient border with conic mask */}
+                <div
+                  className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-700"
+                  style={{
+                    border: '1.5px solid transparent',
+                    background: 'linear-gradient(#22c55e 0 100%) padding-box, conic-gradient(from 0deg at center, rgba(34,197,94,0.6) 0%, rgba(34,197,94,0) 30%, rgba(34,197,94,0) 70%, rgba(34,197,94,0.6) 100%) border-box',
+                    maskImage: 'conic-gradient(from 0deg at center, black 10%, transparent 25%, transparent 75%, black 90%)',
+                    WebkitMaskImage: 'conic-gradient(from 0deg at center, black 10%, transparent 25%, transparent 75%, black 90%)',
                   }}
                 />
+
                 <Link
                   to="/signup"
-                  className="relative rounded-full bg-green-500 px-8 py-3.5 text-base font-semibold text-white hover:bg-green-400 transition-all duration-300 whitespace-nowrap group-hover:shadow-[0_0_30px_rgba(34,197,94,0.4),0_0_80px_rgba(34,197,94,0.15)]"
+                  className="relative rounded-full bg-green-500 px-8 py-3.5 text-base font-semibold text-white hover:bg-green-400 transition-all duration-300 whitespace-nowrap overflow-hidden"
                 >
-                  {/* Glare shimmer line on hover */}
+                  {/* Glare shimmer — slower, smoother sweep */}
                   <span
-                    className="absolute inset-0 rounded-full overflow-hidden opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+                    className="absolute inset-0 rounded-full overflow-hidden opacity-0 group-hover:opacity-100 pointer-events-none"
                     style={{
-                      background: 'linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.2) 45%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0.2) 55%, transparent 60%)',
-                      backgroundSize: '250% 100%',
-                      animation: 'glare-sweep 1.2s ease-in-out infinite',
+                      background: 'linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.15) 42%, rgba(255,255,255,0.35) 50%, rgba(255,255,255,0.15) 58%, transparent 70%)',
+                      backgroundSize: '300% 100%',
+                      animation: 'glare-sweep-green 2.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite',
                     }}
                   />
                   Start free — no card needed
@@ -1028,8 +1059,8 @@ export default function LandingPage() {
 
               {/* View pricing with glare shimmer */}
               <div className="relative group">
-                <a
-                  href="#pricing"
+                <button
+                  onClick={() => scrollToSection('pricing')}
                   className="relative inline-flex items-center gap-2 rounded-full border border-white/20 px-8 py-3.5 text-base font-medium text-white transition-all duration-300 whitespace-nowrap overflow-hidden hover:border-white/10 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-1px_0_rgba(0,0,0,0.2),0_2px_8px_rgba(0,0,0,0.3)] hover:bg-[linear-gradient(145deg,#2a2a2a_0%,#1a1a1a_50%,#111111_100%)]"
                   style={{
                     background: 'transparent',
@@ -1045,14 +1076,14 @@ export default function LandingPage() {
                     }}
                   />
                   View pricing <IconsaxIcon icon="arrow-right" className="text-gray-400 transition-colors" />
-                </a>
+                </button>
               </div>
             </div>
           </div>
         </section>
 
         {/* Feature marquee — 3 rows, different speeds, dark glossy badges */}
-        <div className="bg-[#0a0a0a] overflow-hidden pb-12">
+        <div className="bg-[#0a0a0a] overflow-hidden pb-12 relative">
           {[0, 1, 2].map((row) => (
             <div
               key={row}
@@ -1080,6 +1111,17 @@ export default function LandingPage() {
               })}
             </div>
           ))}
+
+          {/* Gradual blur at bottom of marquee section */}
+          <GradualBlur
+            position="bottom"
+            height="8rem"
+            strength={3}
+            divCount={8}
+            curve="bezier"
+            exponential
+            opacity={0.9}
+          />
         </div>
 
         {/* ══ FOOTER — Separated with Top Border ═════════════ */}
