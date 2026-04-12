@@ -27,7 +27,7 @@
  */
 
 /** Bot instance connection status */
-export type BotStatus = 'disconnected' | 'connecting' | 'qr_pending' | 'connected' | 'error' | 'logged_out';
+export type BotStatus = 'disconnected' | 'connecting' | 'qr_pending' | 'pairing_code' | 'connected' | 'error' | 'logged_out';
 
 /** Bot operating mode */
 export type BotMode = 'public' | 'private';
