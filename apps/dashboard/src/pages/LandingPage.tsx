@@ -705,23 +705,24 @@ export default function LandingPage() {
                   Log in
                 </Link>
 
-                {/* Join for free — slides in from left to right */}
+                {/* Join for free — container hides before scroll, button slides in with slight delay */}
                 <div
                   style={{
-                    opacity: scrolled ? 1 : 0,
-                    transform: scrolled ? 'translateX(0) scale(1)' : 'translateX(-16px) scale(0.92)',
-                    overflow: 'visible',
-                    transition: 'opacity 0.25s ease, transform 0.4s cubic-bezier(0.32, 0.72, 0, 1)',
-                    pointerEvents: scrolled ? 'auto' : 'none',
+                    overflow: 'hidden',
+                    maxWidth: scrolled ? '160px' : '0px',
+                    transition: 'max-width 0.35s cubic-bezier(0.32, 0.72, 0, 1)',
                   }}
                 >
                   <Link
                     to="/signup"
-                    className="inline-flex items-center justify-center rounded-full bg-[#0a0a0a] text-[14px] font-semibold text-white whitespace-nowrap hover:bg-[#1a1a1a] active:scale-95 transition-colors duration-150 pointer-events-auto"
+                    className="inline-flex items-center justify-center rounded-full bg-[#0a0a0a] text-[14px] font-semibold text-white whitespace-nowrap hover:bg-[#1a1a1a] active:scale-95 pointer-events-auto"
                     style={{
                       padding: '10px 22px',
                       letterSpacing: '-0.01em',
                       boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+                      opacity: scrolled ? 1 : 0,
+                      transform: scrolled ? 'translateX(0)' : 'translateX(-12px)',
+                      transition: 'opacity 0.3s ease 0.1s, transform 0.4s cubic-bezier(0.32, 0.72, 0, 1) 0.08s',
                     }}
                   >
                     Join for free

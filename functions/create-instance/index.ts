@@ -21,7 +21,7 @@ export default async (req: Request) => {
     });
   }
 
-  const { name } = body;
+  const { name, phone_number } = body;
   const userId = req.headers.get("x-user-id");
 
   if (!userId) {
@@ -45,13 +45,18 @@ export default async (req: Request) => {
     anonKey: Deno.env.get("SERVICE_ROLE_KEY") || ""
   });
 
+  // Determine auth method: QR or phone pairing code
+  const authMethod = phone_number && typeof phone_number === 'string' && phone_number.trim().length > 0 ? 'pairing_code' : 'qr';
+  const status = authMethod === 'pairing_code' ? 'pairing_code' : 'connecting';
+
   // 1. Create instance record
   const { data: instance, error: insertError } = await insforge.database
     .from('whatsapp_instances')
     .insert({
       user_id: userId,
       instance_name: sanitizedName || "My Bot",
-      status: 'connecting'
+      phone_number: phone_number ? phone_number.trim().replace(/[^0-9]/g, '') : null,
+      status
     })
     .select()
     .single();
@@ -63,7 +68,7 @@ export default async (req: Request) => {
     });
   }
 
-  // 2. Signal Pxxl Bot Container (Orchestrator)
+  // 2. Signal Bot Server (Orchestrator)
   const pxxlUrl = Deno.env.get("PXXL_WEBHOOK_URL");
   const webhookSecret = Deno.env.get("BOT_WEBHOOK_SECRET");
 
@@ -79,16 +84,17 @@ export default async (req: Request) => {
           event: 'create_instance',
           data: {
             instance_id: instance.id,
-            user_id: userId
+            user_id: userId,
+            phone_number: authMethod === 'pairing_code' ? phone_number.trim().replace(/[^0-9]/g, '') : undefined
           }
         })
       });
     } catch (e: any) {
-      console.error("Failed to notify Pxxl:", e.message);
+      console.error("Failed to notify bot server:", e.message);
     }
   }
 
-  return new Response(JSON.stringify({ success: true, instance_id: instance.id }), {
+  return new Response(JSON.stringify({ success: true, instance_id: instance.id, auth_method: authMethod }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' }
   });
 };

@@ -116,7 +116,7 @@ app.post('/webhook', async (req, res) => {
       case 'create_instance':
         // Edge function signals new instance creation
         logger.info({ instanceId: data.instance_id }, 'Provisioning new instance')
-        await provisionInstance(data.instance_id, data.user_id)
+        await provisionInstance(data.instance_id, data.user_id, data.phone_number)
         break
       case 'delete_instance':
         // Edge function signals instance deletion
@@ -144,7 +144,7 @@ app.post('/webhook', async (req, res) => {
 /**
  * Provision a new Baileys instance for a user.
  */
-async function provisionInstance(instanceId: string, userId: string): Promise<void> {
+async function provisionInstance(instanceId: string, userId: string, phoneNumber?: string): Promise<void> {
   if (activeConnections.has(instanceId)) {
     logger.warn({ instanceId }, 'Instance already active, skipping')
     return
@@ -155,8 +155,18 @@ async function provisionInstance(instanceId: string, userId: string): Promise<vo
   const connection = new ConnectionManager({
     sessionId: instanceId,
     authStatePath: sessionPath,
+    phoneNumber, // If provided, use phone pairing instead of QR
     autoReconnect: true,
     maxReconnectAttempts: 10,
+
+    onPairingCode: async (code: string) => {
+      logger.info({ instanceId, code }, 'Pairing code received')
+      // Store pairing code in InsForge for dashboard to display
+      await insforge.database
+        .from('whatsapp_instances')
+        .update({ pairing_code: code, status: 'pairing_code' })
+        .eq('id', instanceId)
+    },
 
     onQR: async (qr: string) => {
       logger.info({ instanceId }, 'QR code received')
@@ -173,6 +183,7 @@ async function provisionInstance(instanceId: string, userId: string): Promise<vo
       const updateData: Record<string, unknown> = { status }
       if (data?.phone_number) updateData.phone_number = data.phone_number
       if (status === 'connected') updateData.qr_code = null
+      if (status === 'connected') updateData.pairing_code = null
 
       await insforge.database
         .from('whatsapp_instances')

@@ -52,8 +52,14 @@ export interface ConnectionOptions {
   /** Base path for storing auth state files */
   authStatePath: string;
 
+  /** Phone number for pairing code auth (digits only, with country code, e.g. '2348012345678') */
+  phoneNumber?: string;
+
   /** Called with QR code string */
   onQR?: (qr: string) => void;
+
+  /** Called with pairing code (8-digit) */
+  onPairingCode?: (code: string) => void;
 
   /** Called on connection status change */
   onStatus?: (status: BotStatus, data?: Record<string, unknown>) => void;
@@ -94,7 +100,7 @@ export class ConnectionManager extends EventEmitter {
 
   /**
    * Start the connection.
-   * Generates QR code and manages auth state.
+   * Generates QR code or pairing code based on configuration.
    */
   async connect(): Promise<void> {
     if (this.isShutdown) {
@@ -111,6 +117,9 @@ export class ConnectionManager extends EventEmitter {
     const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
     const { version } = await fetchLatestBaileysVersion();
 
+    // If phone number is provided, use pairing code instead of QR
+    const usePairingCode = !!this.options.phoneNumber && !state.creds?.registered;
+
     this.sock = makeWASocket({
       version,
       auth: state,
@@ -122,11 +131,29 @@ export class ConnectionManager extends EventEmitter {
     // Save credentials when updated
     this.sock.ev.on('creds.update', saveCreds);
 
+    // Request pairing code if phone number provided and not registered
+    if (usePairingCode && this.options.phoneNumber && !this.sock.authState.creds.registered) {
+      try {
+        // Clean phone number: remove +, spaces, dashes, parentheses
+        const cleanPhone = this.options.phoneNumber.replace(/[^0-9]/g, '');
+        const code = await this.sock.requestPairingCode(cleanPhone);
+        this.options.onPairingCode?.(code);
+        this.emit('pairing_code', code);
+        this.options.onStatus?.('pairing_code', { code });
+        this.emit('status', 'pairing_code', { code });
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error(String(err));
+        logger.error({ sessionId: this.options.sessionId, err: error.message }, 'Failed to request pairing code');
+        this.options.onError?.(error);
+        this.emit('error', error);
+      }
+    }
+
     // Connection state updates
     this.sock.ev.on('connection.update', async (update) => {
       const { connection, lastDisconnect, qr } = update;
 
-      // QR code received
+      // QR code received (fallback when no phone number)
       if (qr) {
         this.options.onQR?.(qr);
         this.emit('qr', qr);

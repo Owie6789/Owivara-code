@@ -69,11 +69,11 @@ export default function DashboardLayout() {
         {/* Logo / Header — rounded top edges for soft appearance */}
         <div className="flex h-14 shrink-0 items-center justify-between border-b border-white/5 px-4 rounded-t-xl">
           {sidebarOpen && (
-            <Link to="/dashboard" className="flex items-center gap-2 overflow-hidden">
+            <Link to="/" className="flex items-center gap-2 overflow-hidden group">
               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg overflow-hidden">
                 <img src="/logo.svg" alt="Owivara" className="w-full h-full object-cover" />
               </div>
-              <span className="text-sm font-bold text-white">Owivara</span>
+              <span className="text-sm font-bold text-white group-hover:text-green-400 transition-colors">Owivara</span>
             </Link>
           )}
           {/* Desktop collapse toggle */}
