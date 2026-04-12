@@ -200,6 +200,12 @@ code {
   to   { transform: translateX(-33.333%); }
 }
 
+/* Left-to-right marquee (for features section) */
+@keyframes marquee-scroll-ltr {
+  from { transform: translateX(-33.333%); }
+  to   { transform: translateX(0); }
+}
+
 .animate-marquee {
   display: flex;
   animation: marquee 30s linear infinite;
@@ -266,6 +272,12 @@ code {
 /* ─── Glare/shimmer sweep for button hover ─── */
 @keyframes glare-sweep {
   0% { background-position: 200% 0; }
+  100% { background-position: -100% 0; }
+}
+
+/* Slower, smoother sweep for green CTA — no stutter, gentle ease */
+@keyframes glare-sweep-green {
+  0% { background-position: 300% 0; }
   100% { background-position: -100% 0; }
 }
 

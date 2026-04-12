@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { motion, useMotionValue, useTransform } from 'framer-motion'
+import { motion, useScroll, useTransform } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
 import { Link } from 'react-router-dom'
 import SEOHead from '../components/SEOHead'
@@ -234,28 +234,11 @@ function ScrollJackedStats() {
   const containerRef = useRef<HTMLDivElement>(null)
   const iconsRef = useRef<HTMLDivElement>(null)
 
-  // Manual scroll progress — maps 0→1 across the FULL scroll distance of 250vh
-  const scrollProgress = useMotionValue(0)
-
-  useEffect(() => {
-    const handleScroll = () => {
-      if (!containerRef.current) return
-      const rect = containerRef.current.getBoundingClientRect()
-      const viewportHeight = window.innerHeight
-
-      let progress = 0
-      if (rect.top <= 0) {
-        progress = Math.min(1, Math.abs(rect.top) / (rect.height - viewportHeight))
-      } else if (rect.bottom <= viewportHeight) {
-        progress = rect.bottom < 0 ? 1 : 0
-      }
-
-      scrollProgress.set(progress)
-    }
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    handleScroll()
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [scrollProgress])
+  // Use Framer Motion's built-in useScroll for reliable container-relative scroll tracking
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ['start start', 'end end'],
+  })
 
   // Floating icons entry animation
   useEffect(() => {
@@ -281,37 +264,38 @@ function ScrollJackedStats() {
     return () => observer.disconnect()
   }, [])
 
-  // OPTIMIZED STAT TRANSITIONS — Each stat visible for ~40% with 5% crossfade zones
+  // STAT TRANSITIONS — Each stat visible for ~40% of scroll range with 5% crossfade zones
+  // scrollYProgress goes from 0 (top of container enters viewport) to 1 (bottom of container leaves viewport)
 
   // Stat 0: Bots (0% → 35%)
-  const stat0Opacity = useTransform(scrollProgress, [0, 0.02, 0.30, 0.35], [0, 1, 1, 0])
-  const stat0Y = useTransform(scrollProgress, [0, 0.02, 0.30, 0.35], [30, 0, 0, -30])
-  const stat0Scale = useTransform(scrollProgress, [0, 0.02, 0.30, 0.35], [0.94, 1, 1, 0.94])
+  const stat0Opacity = useTransform(scrollYProgress, [0, 0.02, 0.30, 0.35], [0, 1, 1, 0])
+  const stat0Y = useTransform(scrollYProgress, [0, 0.02, 0.30, 0.35], [30, 0, 0, -30])
+  const stat0Scale = useTransform(scrollYProgress, [0, 0.02, 0.30, 0.35], [0.94, 1, 1, 0.94])
 
   // Stat 1: Messages (32% → 67%)
-  const stat1Opacity = useTransform(scrollProgress, [0.32, 0.37, 0.62, 0.67], [0, 1, 1, 0])
-  const stat1Y = useTransform(scrollProgress, [0.32, 0.37, 0.62, 0.67], [30, 0, 0, -30])
-  const stat1Scale = useTransform(scrollProgress, [0.32, 0.37, 0.62, 0.67], [0.94, 1, 1, 0.94])
+  const stat1Opacity = useTransform(scrollYProgress, [0.32, 0.37, 0.62, 0.67], [0, 1, 1, 0])
+  const stat1Y = useTransform(scrollYProgress, [0.32, 0.37, 0.62, 0.67], [30, 0, 0, -30])
+  const stat1Scale = useTransform(scrollYProgress, [0.32, 0.37, 0.62, 0.67], [0.94, 1, 1, 0.94])
 
   // Stat 2: Businesses (64% → 100%)
-  const stat2Opacity = useTransform(scrollProgress, [0.64, 0.69, 0.98, 1], [0, 1, 1, 1])
-  const stat2Y = useTransform(scrollProgress, [0.64, 0.69, 0.98, 1], [30, 0, 0, 0])
-  const stat2Scale = useTransform(scrollProgress, [0.64, 0.69, 0.98, 1], [0.94, 1, 1, 1])
+  const stat2Opacity = useTransform(scrollYProgress, [0.64, 0.69, 0.98, 1], [0, 1, 1, 1])
+  const stat2Y = useTransform(scrollYProgress, [0.64, 0.69, 0.98, 1], [30, 0, 0, 0])
+  const stat2Scale = useTransform(scrollYProgress, [0.64, 0.69, 0.98, 1], [0.94, 1, 1, 1])
 
   // Progress dots — active when corresponding stat is centered
-  const dot0Scale = useTransform(scrollProgress, [0, 0.15, 0.35], [0.8, 1.5, 0.8])
-  const dot0Color = useTransform(scrollProgress, [0, 0.15, 0.35], ['#d1d5db', '#0a0a0a', '#d1d5db'])
+  const dot0Scale = useTransform(scrollYProgress, [0, 0.15, 0.35], [0.8, 1.5, 0.8])
+  const dot0Color = useTransform(scrollYProgress, [0, 0.15, 0.35], ['#d1d5db', '#0a0a0a', '#d1d5db'])
 
-  const dot1Scale = useTransform(scrollProgress, [0.32, 0.50, 0.67], [0.8, 1.5, 0.8])
-  const dot1Color = useTransform(scrollProgress, [0.32, 0.50, 0.67], ['#d1d5db', '#0a0a0a', '#d1d5db'])
+  const dot1Scale = useTransform(scrollYProgress, [0.32, 0.50, 0.67], [0.8, 1.5, 0.8])
+  const dot1Color = useTransform(scrollYProgress, [0.32, 0.50, 0.67], ['#d1d5db', '#0a0a0a', '#d1d5db'])
 
-  const dot2Scale = useTransform(scrollProgress, [0.64, 0.82, 1], [0.8, 1.5, 0.8])
-  const dot2Color = useTransform(scrollProgress, [0.64, 0.82, 1], ['#d1d5db', '#0a0a0a', '#d1d5db'])
+  const dot2Scale = useTransform(scrollYProgress, [0.64, 0.82, 1], [0.8, 1.5, 0.8])
+  const dot2Color = useTransform(scrollYProgress, [0.64, 0.82, 1], ['#d1d5db', '#0a0a0a', '#d1d5db'])
 
   return (
-    // Reduced to 250vh for tighter, more responsive scroll control
+    // 250vh gives ~2.5 screens of scroll distance for smooth stat transitions
     <div ref={containerRef} style={{ height: '250vh', position: 'relative' }}>
-      {/* Sticky container — pins in place while scrolling */}
+      {/* Sticky container — pins in place while scrolling through parent */}
       <div className="sticky top-0 h-screen flex flex-col items-center justify-center bg-white">
         {/* Floating icons background */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden" ref={iconsRef}>
@@ -673,18 +657,16 @@ export default function LandingPage() {
       {/* ══ NAV — Fixed standalone element with proper pointer events ═══ */}
       <nav className="fixed top-0 left-0 right-0 z-[9999] flex justify-center" style={{ paddingTop: '14px', paddingLeft: '1rem', paddingRight: '1rem' }}>
           {/* The actual pill — self-contained interactive element */}
-          <motion.div
+          <div
             className="relative flex items-center rounded-full pointer-events-auto"
-            animate={{
-              maxWidth: scrolled ? 620 : 540,
-            }}
-            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
             style={{
+              maxWidth: scrolled ? '640px' : '560px',
               minHeight: '60px',
               backdropFilter: 'blur(24px) saturate(180%)',
               WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-              background: 'rgba(255, 255, 255, 0.8)',
-              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 16px rgba(0, 0, 0, 0.06)',
+              background: 'rgba(255, 255, 255, 0.85)',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.08)',
+              transition: 'max-width 0.35s cubic-bezier(0.32, 0.72, 0, 1)',
             }}
           >
             <div className="flex items-center w-full" style={{ minHeight: '60px', paddingLeft: '32px', paddingRight: '32px' }}>
@@ -693,58 +675,66 @@ export default function LandingPage() {
                 <div className="w-8 h-8 rounded-lg overflow-hidden transition-transform duration-200 group-hover:scale-105 group-active:scale-95">
                   <img src="/logo.svg" alt="Owivara" className="w-full h-full object-cover" />
                 </div>
-                <span className="text-[18px] font-bold tracking-[-0.02em] text-[#0a0a0a] leading-none whitespace-nowrap">Owivara</span>
+                <span className="text-[17px] font-bold tracking-[-0.02em] text-[#0a0a0a] leading-none whitespace-nowrap">Owivara</span>
               </Link>
 
               {/* Nav Links — same baseline as logo text */}
-              <div className="hidden md:flex items-center gap-8 shrink-0 pointer-events-auto">
+              <div className="hidden md:flex items-center gap-7 shrink-0 pointer-events-auto">
                 <button
                   type="button"
                   onClick={() => scrollToSection('features')}
-                  className="text-[15px] font-semibold text-gray-600 hover:text-[#0a0a0a] transition-colors whitespace-nowrap cursor-pointer bg-transparent border-none p-0"
+                  className="text-[14px] font-semibold text-gray-500 hover:text-[#0a0a0a] transition-colors whitespace-nowrap cursor-pointer bg-transparent border-none p-0"
                 >
                   Features
                 </button>
                 <button
                   type="button"
                   onClick={() => scrollToSection('pricing')}
-                  className="text-[15px] font-semibold text-gray-600 hover:text-[#0a0a0a] transition-colors whitespace-nowrap cursor-pointer bg-transparent border-none p-0"
+                  className="text-[14px] font-semibold text-gray-500 hover:text-[#0a0a0a] transition-colors whitespace-nowrap cursor-pointer bg-transparent border-none p-0"
                 >
                   Pricing
                 </button>
               </div>
 
+              {/* Spacer between nav links and right actions */}
+              <div className="hidden md:block w-8 shrink-0" />
+
               {/* Right Actions — same baseline */}
-              <div className="hidden md:flex items-center gap-4 shrink-0 ml-auto pointer-events-auto">
-                <Link to="/login" className="text-[15px] font-semibold text-gray-600 hover:text-[#0a0a0a] transition-colors whitespace-nowrap pointer-events-auto" style={{ textDecoration: 'none' }}>
+              <div className="hidden md:flex items-center gap-3 shrink-0 pointer-events-auto">
+                <Link to="/login" className="text-[14px] font-semibold text-gray-500 hover:text-[#0a0a0a] transition-colors whitespace-nowrap pointer-events-auto" style={{ textDecoration: 'none' }}>
                   Log in
                 </Link>
 
-                {/* Join for free — pops in on scroll */}
-                <motion.div
-                  animate={{
-                    width: scrolled ? 130 : 0,
+                {/* Join for free — slides in from left to right */}
+                <div
+                  style={{
                     opacity: scrolled ? 1 : 0,
+                    transform: scrolled ? 'translateX(0) scale(1)' : 'translateX(-16px) scale(0.92)',
+                    overflow: 'visible',
+                    transition: 'opacity 0.25s ease, transform 0.4s cubic-bezier(0.32, 0.72, 0, 1)',
+                    pointerEvents: scrolled ? 'auto' : 'none',
                   }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 28 }}
-                  className="overflow-hidden pointer-events-auto"
-                  style={{ minWidth: 0 }}
                 >
                   <Link
                     to="/signup"
-                    className="inline-flex items-center justify-center rounded-full bg-[#0a0a0a] text-[15px] font-semibold text-white whitespace-nowrap leading-none hover:bg-[#1a1a1a] active:scale-95 transition-all duration-150 pointer-events-auto"
-                    style={{ padding: '12px 28px', letterSpacing: '-0.01em' }}
+                    className="inline-flex items-center justify-center rounded-full bg-[#0a0a0a] text-[14px] font-semibold text-white whitespace-nowrap hover:bg-[#1a1a1a] active:scale-95 transition-colors duration-150 pointer-events-auto"
+                    style={{
+                      padding: '10px 22px',
+                      letterSpacing: '-0.01em',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+                    }}
                   >
                     Join for free
                   </Link>
-                </motion.div>
+                </div>
               </div>
 
               {/* Hamburger (mobile only) */}
               <button
-                className="flex items-center justify-center rounded-lg p-2 text-gray-500 hover:bg-gray-100/50 hover:text-gray-700 active:scale-95 md:hidden transition-all duration-150 ml-2 pointer-events-auto"
+                className="flex md:hidden items-center justify-center rounded-lg p-2 text-gray-500 hover:bg-gray-100/60 hover:text-gray-700 active:scale-95 transition-all duration-150 ml-auto pointer-events-auto"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 aria-label="Toggle menu"
+                type="button"
               >
                 {mobileMenuOpen ? (
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6L18 18" /></svg>
@@ -753,32 +743,53 @@ export default function LandingPage() {
                 )}
               </button>
             </div>
-          </motion.div>
+          </div>
         </nav>
 
-        {/* Mobile dropdown */}
-        {mobileMenuOpen && (
-          <div className="fixed top-[78px] left-4 right-4 z-[10000] rounded-2xl border border-gray-200 bg-white/95 backdrop-blur-xl px-6 pb-6 pt-4 shadow-[0_8px_32px_rgba(0,0,0,0.08)] md:hidden">
+        {/* Mobile dropdown — always mounted, CSS toggle */}
+        <div
+          className="fixed left-4 right-4 z-[10000] md:hidden"
+          style={{
+            top: '84px',
+            opacity: mobileMenuOpen ? 1 : 0,
+            transform: mobileMenuOpen ? 'translateY(0) scale(1)' : 'translateY(-8px) scale(0.97)',
+            pointerEvents: mobileMenuOpen ? 'auto' : 'none',
+            transition: 'opacity 0.2s ease, transform 0.2s ease',
+          }}
+        >
+          <div className="rounded-2xl border border-gray-200/80 bg-white/96 backdrop-blur-xl px-5 pb-5 pt-3 shadow-[0_8px_32px_rgba(0,0,0,0.1)]">
             <div className="flex flex-col gap-1">
-              <button 
-                onClick={() => scrollToSection('features')} 
-                className="rounded-xl px-5 py-3.5 text-base font-semibold text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors text-left w-full bg-transparent border-none cursor-pointer"
+              <button
+                onClick={() => scrollToSection('features')}
+                className="rounded-xl px-4 py-3 text-[15px] font-semibold text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors text-left w-full bg-transparent border-none cursor-pointer"
               >
                 Features
               </button>
-              <button 
-                onClick={() => scrollToSection('pricing')} 
-                className="rounded-xl px-5 py-3.5 text-base font-semibold text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors text-left w-full bg-transparent border-none cursor-pointer"
+              <button
+                onClick={() => scrollToSection('pricing')}
+                className="rounded-xl px-4 py-3 text-[15px] font-semibold text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors text-left w-full bg-transparent border-none cursor-pointer"
               >
                 Pricing
               </button>
-              <div className="mt-2 flex flex-col gap-2.5 border-t border-gray-100 pt-4">
-                <Link to="/login" onClick={() => setMobileMenuOpen(false)} className="rounded-xl border border-gray-200 px-5 py-3 text-center text-base font-semibold text-gray-700 active:bg-gray-50 transition-colors">Log in</Link>
-                <Link to="/signup" onClick={() => setMobileMenuOpen(false)} className="rounded-xl bg-[#0a0a0a] px-5 py-3 text-center text-base font-semibold text-white active:bg-[#1a1a1a] transition-colors">Join for free</Link>
+              <div className="mt-2 flex flex-col gap-2 border-t border-gray-100 pt-3">
+                <Link
+                  to="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="rounded-xl border border-gray-200 px-4 py-3 text-center text-[15px] font-semibold text-gray-700 hover:bg-gray-50 active:bg-gray-100 transition-colors"
+                >
+                  Log in
+                </Link>
+                <Link
+                  to="/signup"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="rounded-xl bg-[#0a0a0a] px-4 py-3 text-center text-[15px] font-semibold text-white hover:bg-[#1a1a1a] active:bg-[#2a2a2a] transition-colors"
+                >
+                  Join for free
+                </Link>
               </div>
             </div>
           </div>
-        )}
+        </div>
 
         {/* Main content wrapper — contains all scrollable content */}
         <div className="min-h-screen w-full bg-white font-sans text-[#0a0a0a]">
@@ -889,7 +900,7 @@ export default function LandingPage() {
                 <button
                   key={t}
                   onClick={() => setTab(idx)}
-                  className={`rounded-full px-4 py-2 text-sm font-semibold transition-all duration-250 whitespace-nowrap ${
+                  className={`relative rounded-full px-4 py-2 text-sm font-semibold transition-all duration-300 ease-out whitespace-nowrap ${
                     tab === idx ? 'bg-white text-[#0a0a0a] shadow-sm' : 'text-gray-500 hover:text-[#0a0a0a]'
                   }`}
                 >
@@ -899,28 +910,34 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="mt-12">
-            {/* Feature cards marquee — infinite horizontal loop with edge fade */}
-            <div className="relative overflow-hidden">
+            {/* Feature cards marquee — infinite horizontal loop left→right with edge fade */}
+            <div className="relative overflow-hidden" key={tab}>
               {/* Left edge fade */}
               <div className="absolute inset-y-0 left-0 w-32 md:w-48 z-10 pointer-events-none bg-gradient-to-r from-white via-white/90 to-transparent" />
               {/* Right edge fade */}
               <div className="absolute inset-y-0 right-0 w-32 md:w-48 z-10 pointer-events-none bg-gradient-to-l from-white via-white/90 to-transparent" />
-              
-              {/* Marquee track */}
-              <div
+
+              {/* Marquee track — left to right direction */}
+              <motion.div
+                key={tab}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3, ease: 'easeOut' }}
                 className="flex gap-5"
                 style={{
                   width: 'max-content',
-                  animation: 'marquee-scroll 60s linear infinite',
+                  animation: 'marquee-scroll-ltr 60s linear infinite',
                 }}
                 onMouseEnter={(e) => (e.currentTarget.style.animationPlayState = 'paused')}
                 onMouseLeave={(e) => (e.currentTarget.style.animationPlayState = 'running')}
               >
-                {/* Triplicate for seamless loop */}
+                {/* Triplicate for seamless loop (left→right: start at -33.33%, animate to 0) */}
                 {[...filteredFeatures, ...filteredFeatures, ...filteredFeatures].map((f, i) => (
                   <motion.div
                     key={`${f.title}-${i}`}
-                    initial={false}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.4, delay: (i % filteredFeatures.length) * 0.05, ease: 'easeOut' }}
                     className="w-72 flex-shrink-0 rounded-2xl bg-gray-100 overflow-hidden shadow-md hover:shadow-xl hover:-translate-y-1.5 transition-all duration-250 cursor-pointer"
                   >
                     <div className="aspect-[4/3] bg-gray-200 flex items-center justify-center p-6">
@@ -932,7 +949,7 @@ export default function LandingPage() {
                     </div>
                   </motion.div>
                 ))}
-              </div>
+              </motion.div>
             </div>
           </div>
         </Section>
