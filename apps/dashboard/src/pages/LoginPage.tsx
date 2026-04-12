@@ -53,6 +53,8 @@ export default function LoginPage() {
       const msg = result.error.message.toLowerCase()
       if (msg.includes('email') && (msg.includes('verif') || msg.includes('confirm'))) {
         navigate(`/verify?email=${encodeURIComponent(email)}`)
+      } else if (msg.includes('password') && (msg.includes('not set') || msg.includes('google') || msg.includes('oauth') || msg.includes('provider'))) {
+        setError('This account was created with Google. Please use "Continue with Google" to sign in.')
       } else {
         setError(result.error.message)
       }
@@ -76,15 +78,24 @@ export default function LoginPage() {
   const handleGoogleLogin = async () => {
     setError('')
     setOauthLoading(true)
-    
-    // Use popup-based OAuth to prevent full-page redirects to InsForge error pages
+
     const callbackUrl = window.location.origin + '/auth/callback'
     const { url, error } = await signInWithOAuth('google', callbackUrl)
     setOauthLoading(false)
-    
+
     if (error) {
-      setError(error)
-    } else if (url) {
+      // Check for common OAuth misconfiguration errors
+      if (error.includes('unexpected') || error.includes('initialization') || error.includes('configuration')) {
+        setError('Google login is not configured yet. Please sign in with email and password, or contact support.')
+      } else if (error.includes('popup') || error.includes('blocked')) {
+        setError('Popup was blocked. Please allow popups for this site and try again.')
+      } else {
+        setError('Google login is temporarily unavailable. Please use email and password.')
+      }
+      return
+    }
+
+    if (url) {
       // Open OAuth flow in popup so errors stay contained
       const width = 500
       const height = 700
